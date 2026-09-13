@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0b14">
+<title>RING QUEEN - 여자 프로레슬링 매니저</title>
+<style>
+:root{
+  --bg:#0d0b14; --panel:#1a1626; --panel2:#241d35; --line:#3a2f52;
+  --ink:#efe9ff; --dim:#b0a4cc; --pink:#ff4d8d; --gold:#ffc844;
+  --cyan:#4de1ff; --green:#5ce07a; --red:#ff5b5b;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,"D2Coding","Apple SD Gothic Neo",monospace;
+  font-size:13px; line-height:1.5; overscroll-behavior:none;
+}
+img,canvas{image-rendering:pixelated;image-rendering:-moz-crisp-edges}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+#app{max-width:440px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;
+  background:var(--bg);position:relative;overflow:hidden}
+
+/* ===== 공통 픽셀 패널 ===== */
+.pnl{background:var(--panel);border:2px solid var(--line);box-shadow:3px 3px 0 #000;padding:10px;margin-bottom:10px}
+.pnl.alt{background:var(--panel2)}
+.ttl{font-size:11px;letter-spacing:1px;color:var(--pink);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.ttl b{color:var(--ink)}
+.dim{color:var(--dim)}
+.gold{color:var(--gold)} .cy{color:var(--cyan)} .gr{color:var(--green)} .rd{color:var(--red)} .pk{color:var(--pink)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mini{font-size:11px}
+.tiny{font-size:10px;letter-spacing:.5px}
+.center{text-align:center}
+hr.px{border:none;border-top:2px dashed var(--line);margin:8px 0}
+
+/* ===== 버튼 ===== */
+.btn{display:block;width:100%;min-height:46px;padding:10px;background:var(--panel2);
+  border:2px solid var(--line);box-shadow:3px 3px 0 #000;text-align:center;letter-spacing:1px}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.btn.pri{background:var(--pink);color:#1a0a14;border-color:#ff9cc2;font-weight:bold}
+.btn.sec{background:var(--panel2)}
+.btn.sm{min-height:38px;font-size:11px;padding:6px}
+.btn[disabled]{opacity:.4}
+.btns{display:grid;gap:8px}
+.btns.g2{grid-template-columns:1fr 1fr}
+
+/* ===== 상단 상태바 ===== */
+header{position:sticky;top:0;z-index:20;background:#120f1c;border-bottom:2px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 6px) 10px 6px}
+.hbar{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.hname{font-size:12px;letter-spacing:1px}
+.hstat{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;font-size:10px}
+.hstat div{background:var(--panel);border:1px solid var(--line);padding:3px 4px;text-align:center}
+.hstat span{display:block;color:var(--dim);font-size:9px}
+
+/* ===== 본문/탭 ===== */
+main{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px;padding-bottom:80px;-webkit-overflow-scrolling:touch}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:440px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(5,1fr);background:#120f1c;border-top:2px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+nav button{padding:8px 2px 6px;font-size:9px;color:var(--dim);letter-spacing:0}
+nav button .ic{display:block;font-size:16px;line-height:1.2}
+nav button.on{color:var(--pink);background:#1d1530}
+nav:empty,header:empty{display:none}
+
+/* ===== 게이지 ===== */
+.bar{height:8px;background:#0a0810;border:1px solid var(--line);position:relative;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pink)}
+.bar.c i{background:var(--cyan)} .bar.g i{background:var(--green)} .bar.o i{background:var(--gold)}
+.attr{margin-bottom:6px}
+.attr .row{font-size:11px;margin-bottom:2px}
+.pot{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);opacity:.9}
+
+/* ===== 스프라이트 ===== */
+.sprite{display:block;margin:0 auto}
+.card{display:flex;gap:8px;align-items:center;background:var(--panel2);border:2px solid var(--line);padding:6px;margin-bottom:6px}
+.card canvas{flex:none}
+.card .info{flex:1;min-width:0}
+.card .nm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;border:1px solid var(--line);padding:0 4px;font-size:9px;margin-right:3px;background:#0f0c18}
+.badge.t{border-color:var(--gold);color:var(--gold)}
+.badge.p{border-color:var(--pink);color:var(--pink)}
+
+/* ===== 모달 ===== */
+#modal{position:fixed;inset:0;z-index:50;background:rgba(5,3,10,.88);display:none;
+  align-items:center;justify-content:center;padding:12px;
+  padding-top:calc(env(safe-area-inset-top) + 12px);padding-bottom:calc(env(safe-area-inset-bottom) + 12px)}
+#modal.on{display:flex}
+.mbox{width:100%;max-width:416px;max-height:100%;overflow-y:auto;background:var(--panel);
+  border:2px solid var(--pink);box-shadow:4px 4px 0 #000;padding:12px}
+.mtitle{font-size:13px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;text-align:center}
+
+/* ===== 경기 화면 ===== */
+.ring{position:relative;height:132px;background:linear-gradient(#2a1f3d,#191230);
+  border:2px solid var(--line);overflow:hidden;margin-bottom:8px}
+.ropes{position:absolute;left:0;right:0;height:2px;background:var(--pink);opacity:.55}
+.mat{position:absolute;left:0;right:0;bottom:0;height:42px;background:#3a2b55;border-top:2px solid #56407e}
+.fighters{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:14px;padding-bottom:14px}
+.fighters canvas{transition:transform .18s steps(2)}
+.lunge-l{transform:translateX(10px)} .lunge-r{transform:translateX(-10px)}
+.mlog{height:150px;overflow-y:auto;background:#0a0810;border:2px solid var(--line);padding:8px;font-size:11px}
+.mlog p{margin-bottom:4px}
+.mlog .hit{color:var(--ink)} .mlog .big{color:var(--gold)} .mlog .sys{color:var(--dim)}
+.hpwrap{display:flex;gap:6px;margin-bottom:6px;font-size:10px}
+.hpwrap>div{flex:1}
+.stars{font-size:16px;color:var(--gold);letter-spacing:2px}
+
+/* ===== 선택지 ===== */
+.opt{display:block;width:100%;text-align:left;background:var(--panel2);border:2px solid var(--line);
+  padding:7px 9px;margin-bottom:6px;box-shadow:2px 2px 0 #000;min-height:44px}
+.opt:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
+.opt b{color:var(--cyan);display:block;font-size:12px}
+.opt span{font-size:10px;color:var(--dim)}
+.opt.on{border-color:var(--pink);background:#31203f}
+
+/* ===== 타이틀 화면 ===== */
+.logo{text-align:center;padding:16px 0 8px}
+.logo h1{font-size:26px;letter-spacing:3px;color:var(--pink);text-shadow:3px 3px 0 #000,0 0 12px rgba(255,77,141,.5)}
+.logo h2{font-size:11px;letter-spacing:4px;color:var(--gold);margin-top:4px}
+.newsline{border-left:3px solid var(--line);padding:2px 0 2px 7px;margin-bottom:6px;font-size:11px}
+.newsline.hot{border-color:var(--pink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--panel2);border:1px solid var(--line);padding:6px;text-align:center}
+.stat b{display:block;font-size:15px;color:var(--gold)}
+.stat span{font-size:9px;color:var(--dim)}
+.scroll-x{overflow-x:auto}
+input[type=text]{width:100%;background:#0a0810;border:2px solid var(--line);color:var(--ink);
+  padding:9px;font:inherit;font-size:13px;min-height:44px}
+input[type=text]:focus{outline:none;border-color:var(--pink)}
+.swatch{display:flex;gap:6px;flex-wrap:wrap}
+.swatch button{width:34px;height:34px;border:2px solid var(--line);box-shadow:2px 2px 0 #000}
+.swatch button.on{border-color:var(--ink);transform:translateY(-2px)}
+.fade{animation:fi .25s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="hd"></header>
+  <main id="mn"></main>
+  <nav id="nv"></nav>
+</div>
+<div id="modal"><div class="mbox" id="mbox"></div></div>
+<script>
+/* ==========================================================
+   RING QUEEN - 여자 프로레슬링 매니저 (단일 파일)
+   ========================================================== */
+"use strict";
+
+/* ---------- 유틸 ---------- */
+const $ = s => document.querySelector(s);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const ri  = (a, b) => Math.floor(rnd(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+const r1 = v => Math.round(v * 10) / 10;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- 도트 스프라이트 ---------- */
+const BODY_LONG = [
+'......HHHH......','....HHHHHHHH....','...HHHHHHHHHH...','..HHHSSSSSSHHH..',
+'..HHHSSSSSSHHH..','..HHHSESSESHHH..','..HHHSSSSSSHHH..','..HHHSSMMSSHHH..',
+'..HHHHSSSSHHHH..','..HHHH.SS.HHHH..','..HHOOOOOOOOHH..','.HSOOOOOOOOOOSH.',
+'..SOOOWWWWOOOS..','..SOOOWWWWOOOS..','..SSOOOOOOOOSS..','...SOOOOOOOOS...',
+'....OOOOOOOO....','....OOOOOOOO....','....SSS..SSS....','....SSS..SSS....',
+'....SSS..SSS....','....BBB..BBB....','...BBBB..BBBB...','................'];
+const BODY_SHORT = BODY_LONG.slice();
+BODY_SHORT[9]  = '.......SS.......';
+BODY_SHORT[10] = '...OOOOOOOOOO...';
+BODY_SHORT[11] = '..SOOOOOOOOOOS..';
+const BODY_TWIN = BODY_LONG.slice();
+BODY_TWIN[9]  = '.HH...SS...HH...';
+BODY_TWIN[10] = '.HHOOOOOOOOOOHH.';
+const BODY_MOHAWK = BODY_SHORT.slice();
+BODY_MOHAWK[0] = '.......HH.......';
+BODY_MOHAWK[1] = '......HHHH......';
+BODY_MOHAWK[2] = '.....HHHHHH.....';
+BODY_MOHAWK[3] = '...SSSSHHSSSS...';
+BODY_MOHAWK[4] = '...SSSSSSSSSS...';
+BODY_MOHAWK[5] = '...SSESSSSESS...';
+BODY_MOHAWK[6] = '...SSSSSSSSSS...';
+BODY_MOHAWK[7] = '....SSSMMSSS....';
+BODY_MOHAWK[8] = '....SSSSSSSS....';
+
+const HAIR_SETS = [BODY_LONG, BODY_SHORT, BODY_TWIN, BODY_MOHAWK];
+const HAIR_NAMES = ['롱', '숏', '트윈테일', '모히칸'];
+const SKINS   = ['#f4ccA4', '#e0a877', '#c08050', '#8f5a37', '#fae0c8'];
+const HAIRCOL = ['#2b1f30', '#7b3f2a', '#e0c476', '#ff5fa2', '#5ec8ff', '#9a5cff', '#eceaf5', '#3fbf6a'];
+const OUTFITS = ['#ff4d8d', '#4de1ff', '#ffc844', '#7a5cff', '#5ce07a', '#ff6b3d', '#eceaf5', '#39304f'];
+
+function paint(cv, look, scale) {
+  const rows = HAIR_SETS[look.hair % 4];
+  cv.width = 16 * scale; cv.height = 24 * scale;
+  cv.style.width = (16 * scale) + 'px'; cv.style.height = (24 * scale) + 'px';
+  const g = cv.getContext('2d');
+  const pal = { H: HAIRCOL[look.hc], S: SKINS[look.sk], E: '#1a1020', M: '#8e3c52',
+                O: OUTFITS[look.oc], W: OUTFITS[look.ac], B: '#241c36' };
+  g.clearRect(0, 0, cv.width, cv.height);
+  const on = (x, y) => x >= 0 && x < 16 && y >= 0 && y < rows.length && rows[y][x] !== '.';
+  g.fillStyle = '#08060f';
+  for (let y = 0; y < rows.length; y++) for (let x = 0; x < 16; x++) {
+    if (rows[y][x] !== '.') continue;
+    if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) g.fillRect(x * scale, y * scale, scale, scale);
+  }
+  for (let y = 0; y < rows.length; y++) for (let x = 0; x < 16; x++) {
+    const c = pal[rows[y][x]];
+    if (c) { g.fillStyle = c; g.fillRect(x * scale, y * scale, scale, scale); }
+  }
+}
+/* 문자열 템플릿용 자리표시 캔버스. 실제 픽셀은 repaintAll()에서 그린다. */
+function spr(look, scale) {
+  return '<canvas class="sprite" width="' + (16 * scale) + '" height="' + (24 * scale) +
+    '" data-look="' + esc(JSON.stringify(look)) + '" data-sc="' + scale + '"></canvas>';
+}
+/* 문자열 렌더 후 실제 픽셀을 다시 그린다 (outerHTML은 픽셀을 보존하지 않음) */
+function repaintAll(root) {
+  root.querySelectorAll('canvas[data-look]').forEach(cv => {
+    paint(cv, JSON.parse(cv.dataset.look), +cv.dataset.sc);
+  });
+}
+function randLook() {
+  return { hair: ri(0, 3), hc: ri(0, HAIRCOL.length - 1), sk: ri(0, SKINS.length - 1),
+           oc: ri(0, OUTFITS.length - 1), ac: ri(0, OUTFITS.length - 1) };
+}
+
+/* ---------- 데이터 ---------- */
+const ATTRS = [
+  { k: 'power',  n: '파워',     d: '타격/파워 무브의 위력' },
+  { k: 'tech',   n: '테크닉',   d: '기술 정확도와 경기 운영' },
+  { k: 'aerial', n: '공중',     d: '탑로프·고공 기술' },
+  { k: 'stam',   n: '체력',     d: '장기전 지구력, 부상 저항' },
+  { k: 'cha',    n: '카리스마', d: '마이크워크와 관중 호응' },
+  { k: 'sell',   n: '셀링',     d: '기술을 받아주는 연기력' }
+];
+const STYLES = {
+  power: { n: '파워하우스', d: '힘으로 압도하는 괴력형',
+    base: { power: 12, tech: 6, aerial: 4, stam: 10, cha: 7, sell: 6 },
+    gro:  { power: 1.3, tech: .9, aerial: .6, stam: 1.1, cha: 1, sell: .9 } },
+  tech: { n: '테크니션', d: '관절기와 그래플링의 장인',
+    base: { power: 6, tech: 12, aerial: 6, stam: 9, cha: 6, sell: 9 },
+    gro:  { power: .8, tech: 1.3, aerial: .9, stam: 1, cha: .9, sell: 1.2 } },
+  fly: { n: '하이플라이어', d: '공중 기술의 스페셜리스트',
+    base: { power: 5, tech: 8, aerial: 13, stam: 8, cha: 7, sell: 9 },
+    gro:  { power: .7, tech: 1, aerial: 1.3, stam: .9, cha: 1, sell: 1.2 } },
+  brawl: { n: '브롤러', d: '난투와 근성의 싸움꾼',
+    base: { power: 10, tech: 6, aerial: 5, stam: 11, cha: 9, sell: 8 },
+    gro:  { power: 1.2, tech: .9, aerial: .7, stam: 1.2, cha: 1.1, sell: 1 } }
+};
+const MOVES = {
+  power: ['파워밤', '초크슬램', '스파인버스터', '고릴라 프레스', '폴어웨이 슬램'],
+  tech:  ['크로스 암바', '브릿지 수플렉스', '드래곤 슬리퍼', '앵클 락', '옥토퍼스 홀드'],
+  fly:   ['미사일 드롭킥', '허리케인라나', '토페 콘 히로', '스프링보드 엘보', '스완튼'],
+  brawl: ['래리어트', '엘보 스매시', 'DDT', '러닝 빅붓', '백스트리트 스트라이크'],
+  all:   ['드롭킥', '바디 슬램', '스냅 수플렉스', '러닝 니', '숄더 태클', '네크브레이커']
+};
+const FINISH = {
+  power: ['라스트 라이드', '크라운 브레이커'], tech: ['퀸즈 록', '파이널 브릿지'],
+  fly:   ['문설트 프레스', '450 스플래시'],   brawl: ['스피어', '리볼버 래리어트']
+};
+const F_NAMES = ['미나', '유리', '세라', '레이', '하나', '카린', '지아', '루나', '노아', '에리',
+  '타마', '소라', '린', '아야', '미호', '나기', '유키', '리사'];
+const L_NAMES = ['스톰', '블레이드', '크로우', '바이퍼', '썬더', '로즈', '나이트', '샤크',
+  '플레임', '코브라', '헤이즈', '울프', '스타', '아이언', '재규어'];
+const NICK = ['블러디', '실버', '와일드', '골든', '다크', '크림슨', '네온', '아이스', '썬더', '베놈'];
+
+const BRANDS = { indie: { n: '인디 서킷', pay: 30 }, next: { n: 'GWF NEXT', pay: 120 }, main: { n: 'GWF 메인로스터', pay: 400 } };
+const TITLES = { rising: { n: 'NEXT 라이징 챔피언', brand: 'next' }, world: { n: 'GWF 월드 여성 챔피언', brand: 'main' } };
+
+/* ==========================================================
+   상태
+   ========================================================== */
+const SAVE_KEY = 'ringqueen_save_v1';
+let S = null;          // 게임 상태
+let P = null;          // S.player 바로가기
+let tab = 'home';
+let uid = 1;
+
+function blankAttr(v) { const o = {}; ATTRS.forEach(a => o[a.k] = v); return o; }
+function ovr(w) {
+  const a = w.attr;
+  return Math.round((a.power + a.tech + a.aerial + a.stam + a.cha * 1.2 + a.sell * 1.2) / 6.4 * 5);
+}
+function attrAvg(w) {
+  const a = w.attr; return (a.power + a.tech + a.aerial + a.stam + a.cha + a.sell) / 6;
+}
+
+function makeAI(brand, tier, style) {
+  style = style || pick(Object.keys(STYLES));
+  const base = STYLES[style].base;
+  const attr = {}, pot = {};
+  ATTRS.forEach(a => {
+    attr[a.k] = cl(Math.round(base[a.k] + tier * 1.7 + rnd(-2, 2)), 3, 20);
+    pot[a.k] = cl(attr[a.k] + ri(0, 4), 3, 20);
+  });
+  const useNick = Math.random() < .4;
+  return {
+    id: uid++, ai: true, brand: brand, style: style,
+    name: (useNick ? pick(NICK) + ' ' : '') + pick(F_NAMES) + ' ' + pick(L_NAMES),
+    align: Math.random() < .5 ? 'face' : 'heel',
+    look: randLook(), age: ri(21, 34), attr: attr, pot: pot,
+    pop: cl(Math.round(tier * 11 + rnd(-8, 8)), 5, 95), home: cl(Math.round(tier * 11), 5, 92),
+    push: cl(Math.round(tier * 0.9 + rnd(-.5, .8)), 1, 5),
+    rec: { w: ri(0, 40), l: ri(0, 40) }
+  };
+}
+function genRoster() {
+  const r = [], used = {}, ks = Object.keys(STYLES);
+  for (let i = 0; i < 18; i++) {
+    const next = i < 8;
+    let w, guard = 0;
+    do { w = makeAI(next ? 'next' : 'main', next ? ri(1, 4) : ri(3, 7), ks[i % ks.length]); } while (used[w.name] && ++guard < 40);
+    used[w.name] = 1; r.push(w);
+  }
+  return r;
+}
+function findW(id) { return id === P.id ? P : S.roster.find(w => w.id === id); }
+function brandPool(b) { return S.roster.filter(w => w.brand === b); }
+
+/* 순위: 인지도 + 푸시 + 승수 */
+function score(w) { return w.pop * 1 + pushLv(w) * 5 + w.rec.w * .3; }
+function rankList(brand) {
+  const l = brandPool(brand).slice();
+  if (P.brand === brand) l.push(P);
+  return l.sort((a, b) => score(b) - score(a));
+}
+function rankOf(w) { return rankList(w.brand).findIndex(x => x.id === w.id) + 1; }
+
+/* 푸시 등급 1(자버)~5(메인이벤터) */
+function pushLv(w) {
+  if (w.ai) return w.push;
+  let p = 1 + (w.pop >= 25) + (w.pop >= 45) + (w.pop >= 65) + (w.pop >= 82);
+  if (S.trust < 30) p -= 1;
+  if (S.trust > 78) p += 1;
+  if (holdsAny()) p += 1;
+  return cl(p, 1, 5);
+}
+const PUSH_NAME = ['', '자버', '언더카드', '미드카더', '준메인', '메인이벤터'];
+function holds(t) { return S.titles[t] === P.id; }
+function holdsAny() { return holds('rising') || holds('world'); }
+function champName(t) { const w = findW(S.titles[t]); return w ? w.name : '공석'; }
+
+function news(txt, hot) { S.news.unshift({ w: S.week, t: txt, hot: !!hot }); S.news = S.news.slice(0, 40); }
+
+/* ==========================================================
+   새 게임
+   ========================================================== */
+function newGame(cfg) {
+  uid = 1;
+  const st = STYLES[cfg.style];
+  const attr = {}, pot = {}, xp = {};
+  ATTRS.forEach(a => {
+    attr[a.k] = cl(st.base[a.k] + ri(-1, 1) + Math.floor((cfg.age - 18) / 3), 3, 16);
+    pot[a.k] = cl(attr[a.k] + Math.round(ri(3, 8) * st.gro[a.k]) + (cfg.age <= 18 ? 2 : cfg.age <= 22 ? 1 : 0), 6, 20);
+    xp[a.k] = 0;
+  });
+  S = {
+    ver: 1, week: 1, news: [], roster: genRoster(), titles: {}, feud: null,
+    trust: 45, money: 300, act: null, gymWeeks: 0, queue: [], over: false,
+    log: [], hof: 0, retired: false
+  };
+  P = {
+    id: 9999, ai: false, name: cfg.name, style: cfg.style, align: cfg.align,
+    look: cfg.look, age: cfg.age, attr: attr, pot: pot, xp: xp,
+    pop: 8, brand: 'next', rec: { w: 0, l: 0 }, push: 1,
+    cond: 100, injury: 0, injName: '',
+    salary: BRANDS.next.pay, contract: 52,
+    st: { matches: 0, stars: 0, best: 0, ppv: 0, titles: 0, shots: 0, peak: 8, reigns: [] }
+  };
+  S.player = P;
+  const np = brandPool('next').sort((a, b) => score(b) - score(a));
+  const mp = brandPool('main').sort((a, b) => score(b) - score(a));
+  S.titles.rising = np[0].id;
+  S.titles.world = mp[0].id;
+  news('신인 ' + P.name + ' 선수가 GWF NEXT와 계약했습니다.', true);
+  news('현 월드 여성 챔피언은 ' + champName('world') + '.');
+  save();
+}
+
+/* ==========================================================
+   성장 / 훈련
+   ========================================================== */
+function ageFactor(a) { return a <= 21 ? 1.25 : a <= 25 ? 1.1 : a <= 29 ? 1 : a <= 32 ? .8 : a <= 35 ? .6 : .45; }
+function needXp(v) { return 8 + v * 1.7; }
+function gainXp(key, amount) {
+  const lines = [];
+  P.xp[key] += amount;
+  while (P.xp[key] >= needXp(P.attr[key])) {
+    if (P.attr[key] >= P.pot[key]) { P.xp[key] = needXp(P.attr[key]) * .98; break; }
+    P.xp[key] -= needXp(P.attr[key]);
+    P.attr[key]++;
+    lines.push('<b class="gr">▲ ' + ATTRS.find(a => a.k === key).n + ' 상승! → ' + P.attr[key] + '</b>');
+  }
+  return lines;
+}
+function trainWeek(key) {
+  const g = STYLES[P.style].gro[key];
+  const cf = .55 + P.cond / 220;
+  let amt = (2.4 + rnd(0, 1.8)) * g * ageFactor(P.age) * cf;
+  if (S.gymWeeks > 0) { amt *= 1.75; S.gymWeeks--; }
+  const lines = ['<span class="dim">' + ATTRS.find(a => a.k === key).n + ' 집중 훈련 (+' + r1(amt) + ' XP)</span>'];
+  if (P.attr[key] >= P.pot[key]) lines.push('<span class="dim">이미 잠재치 한계. 성장이 없습니다.</span>');
+  lines.push(...gainXp(key, amt));
+  P.cond = cl(P.cond - ri(9, 14), 0, 100);
+  return lines;
+}
+
+/* ==========================================================
+   주간 활동
+   ========================================================== */
+const ACTS = [
+  { k: 'train',  n: '훈련',        d: '능력치 집중 성장 · 컨디션 -12', sub: true },
+  { k: 'rest',   n: '휴식/치료',   d: '컨디션 대폭 회복 · 부상 회복 가속' },
+  { k: 'promo',  n: '프로모 촬영', d: '인지도 +, 카리스마 성장 · 컨디션 -5' },
+  { k: 'back',   n: '백스테이지',  d: '부커 신뢰 + · 컨디션 -3' },
+  { k: 'media',  n: '외부 활동',   d: '자금 + · 인지도 소폭 +' }
+];
+function doActivity() {
+  const a = S.act || { k: 'rest' };
+  if (P.injury > 0 && a.k !== 'rest') {
+    return ['<span class="rd">부상 중에는 재활만 가능합니다.</span>', ...doRest(true)];
+  }
+  if (a.k === 'train') return trainWeek(a.attr);
+  if (a.k === 'rest') return doRest(false);
+  if (a.k === 'promo') {
+    const gain = 1 + attrAvg({ attr: P.attr }) * 0 + P.attr.cha * .12 + rnd(0, 1);
+    P.pop = cl(P.pop + gain, 0, 100); P.cond = cl(P.cond - 5, 0, 100);
+    return ['<span class="dim">프로모 영상 촬영. 인지도 +' + r1(gain) + '</span>', ...gainXp('cha', 1.5)];
+  }
+  if (a.k === 'back') {
+    const t = ri(3, 7); S.trust = cl(S.trust + t, 0, 100); P.cond = cl(P.cond - 3, 0, 100);
+    return ['<span class="dim">백스테이지에서 부커·선배들과 관계를 다졌습니다. 신뢰 +' + t + '</span>'];
+  }
+  const m = Math.round(40 + P.pop * 4);
+  S.money += m; P.pop = cl(P.pop + .6, 0, 100); P.cond = cl(P.cond - 4, 0, 100);
+  return ['<span class="dim">광고·행사 출연. 자금 +$' + m + '</span>'];
+}
+function doRest(auto) {
+  const heal = ri(26, 38);
+  P.cond = cl(P.cond + heal, 0, 100);
+  const l = ['<span class="cy">' + (auto ? '재활' : '휴식') + ' - 컨디션 +' + heal + '</span>'];
+  if (P.injury > 0) { P.injury = Math.max(0, P.injury - (Math.random() < .35 ? 2 : 1)); l.push('<span class="dim">부상 잔여 ' + P.injury + '주</span>'); }
+  return l;
+}
+
+/* ==========================================================
+   경기 시뮬레이션
+   ========================================================== */
+function pushScore(w) {
+  let s = w.pop * .6 + pushLv(w) * 8;
+  if (!w.ai && holdsAny()) s += 12;
+  if (w.ai && (S.titles.rising === w.id || S.titles.world === w.id)) s += 12;
+  return s;
+}
+function perf(w) {
+  const a = w.attr;
+  return (a.tech * 1.4 + a.sell * 1.6 + a.aerial * .8 + a.power * .7 + a.cha * 1.1) / 5.6;
+}
+function simMatch(opp, ctx) {
+  /* 1) 부커가 승자를 정한다 (능력치가 아니라 푸시/스토리) */
+  let pw = 1 / (1 + Math.exp(-(pushScore(P) - pushScore(opp)) / 15));
+  if (ctx.title && !holds(ctx.title)) pw *= .75;
+  if (ctx.job) pw = .03;
+  if (S.feud && S.feud.oppId === opp.id && ctx.blowoff) pw = cl(pw + S.feud.heat / 260, .05, .95);
+  const win = Math.random() < pw;
+
+  /* 2) 경기 평점 */
+  let q = perf(P) * .62 + perf(opp) * .38;
+  q *= .55 + (P.cond / 100) * .45;
+  if (S.feud && S.feud.oppId === opp.id) q += S.feud.heat * .022;
+  if (ctx.ppv) q += 1.1;
+  if (ctx.title) q += .8;
+  q += P.pop * .012;
+  q += rnd(-1.3, 1.3);
+  const stars = cl(Math.round(q / 3.8 * 2) / 2, .5, 5);
+
+  /* 3) 텍스트 로그 */
+  const log = [];
+  const mine = MOVES[P.style].concat(MOVES.all);
+  const theirs = MOVES[opp.style].concat(MOVES.all);
+  log.push({ t: 'sys', s: '공이 울립니다! ' + P.name + ' vs ' + opp.name });
+  const beats = ri(9, 13);
+  let mo = 0;
+  for (let i = 0; i < beats; i++) {
+    const meAct = Math.random() < .5 + mo * .05;
+    mo += meAct ? 1 : -1; mo = cl(mo, -3, 3);
+    const who = meAct ? P : opp;
+    const mv = pick(meAct ? mine : theirs);
+    const big = Math.random() < .22;
+    log.push({ t: big ? 'big' : 'hit', me: meAct,
+      s: who.name + ' ' + (big ? '회심의 ' : '') + mv + '!' + (big ? ' 관중석이 폭발합니다!' : '') });
+    if (i === Math.floor(beats / 2)) log.push({ t: 'sys', s: '관중 "이건 대박이야!" 연호' });
+  }
+  const winner = win ? P : opp;
+  const fin = pick(FINISH[winner.style]);
+  log.push({ t: 'big', me: win, s: winner.name + ' 피니셔 ' + fin + '!!' });
+  log.push({ t: 'sys', s: '1... 2... 3! 종료' });
+  return { win: win, stars: stars, log: log, opp: opp, ctx: ctx };
+}
+
+/* 경기 결과를 상태에 반영 */
+function applyMatch(res) {
+  const lines = [];
+  const opp = res.opp, ctx = res.ctx;
+  P.st.matches++; P.st.stars += res.stars;
+  if (res.stars > P.st.best) P.st.best = res.stars;
+  if (ctx.ppv) P.st.ppv++;
+  if (ctx.title) P.st.shots++;
+  if (res.win) { P.rec.w++; opp.rec.l++; } else { P.rec.l++; opp.rec.w++; }
+
+  const expPop = 1.8 + P.pop * .018;          // 인지도가 높을수록 팬의 기대치가 높다
+  let dp = (res.stars - expPop) * 2.2 * (ctx.ppv ? 1.7 : 1) * (ctx.title ? 1.3 : 1);
+  dp += (res.win ? 1.6 : -.4) * (1 - P.pop / 140);
+  if (ctx.job) dp = Math.min(dp, .4);
+  P.pop = cl(P.pop + dp, 0, 100);
+
+  const expTr = 1.9 + pushLv(P) * .32;        // 푸시가 높을수록 부커의 요구 수준도 높다
+  let dt = (res.stars - expTr) * 3.4;
+  if (ctx.job) dt += 8;
+  S.trust = cl(S.trust + dt, 0, 100);
+  lines.push('인지도 ' + (dp >= 0 ? '+' : '') + r1(dp) + ' / 부커 신뢰 ' + (dt >= 0 ? '+' : '') + r1(dt));
+
+  P.cond = cl(P.cond - ri(14, 24) - (ctx.ppv ? 6 : 0), 0, 100);
+  lines.push(...gainXp('sell', 1.2 + res.stars * .3));
+  lines.push(...gainXp('tech', .7));
+
+  /* 부상 판정 */
+  const risk = .015 + (100 - P.cond) / 100 * .09 + (ctx.ppv ? .02 : 0) - P.attr.stam * .002;
+  if (Math.random() < risk) {
+    P.injury = ri(2, 7);
+    P.injName = pick(['무릎 인대 손상', '어깨 탈구', '뇌진탕', '갈비뼈 골절', '발목 염좌']);
+    lines.push('<b class="rd">부상! ' + P.injName + ' (' + P.injury + '주 결장)</b>');
+    news(P.name + ', ' + P.injName + '으로 ' + P.injury + '주 결장.', true);
+  }
+  /* 타이틀 이동 */
+  if (ctx.title && res.win && !holds(ctx.title)) {
+    S.titles[ctx.title] = P.id; P.st.titles++;
+    P.st.reigns.push({ t: ctx.title, from: S.week });
+    lines.push('<b class="gold">★ ' + TITLES[ctx.title].n + ' 등극! ★</b>');
+    news(P.name + ' 선수가 ' + TITLES[ctx.title].n + '에 등극했습니다!', true);
+  } else if (ctx.title && !res.win && holds(ctx.title)) {
+    S.titles[ctx.title] = opp.id;
+    const rg = P.st.reigns[P.st.reigns.length - 1]; if (rg && !rg.to) rg.to = S.week;
+    lines.push('<b class="rd">타이틀을 잃었습니다.</b>');
+    news(opp.name + ' 선수가 새 ' + TITLES[ctx.title].n + '이 되었습니다.', true);
+  }
+  /* 라이벌전 종료 */
+  if (S.feud && S.feud.oppId === opp.id && ctx.blowoff) {
+    lines.push('<span class="pk">' + opp.name + '와의 라이벌 구도가 마무리되었습니다.</span>');
+    if (res.win) { P.pop = cl(P.pop + 3, 0, 100); lines.push('승리로 구도를 정리하며 인지도 +3'); }
+    S.feud = null;
+  }
+  return lines;
+}
+
+/* ==========================================================
+   주 진행
+   ========================================================== */
+const PPV_EVERY = 12;
+function isPPV(w) { return w % PPV_EVERY === 0; }
+function ppvName(w) { return ['서머 슬래시', '로열 클래시', '아이언 퀸', '파이널 커튼'][(w / PPV_EVERY - 1) % 4]; }
+
+function pickOpponent() {
+  const pool = brandPool(P.brand);
+  if (!pool.length) return null;
+  if (S.feud && Math.random() < .65) { const o = findW(S.feud.oppId); if (o && o.brand === P.brand) return o; }
+  const list = rankList(P.brand);
+  const myIdx = list.findIndex(w => w.id === P.id);
+  const near = list.filter((w, i) => w.ai && Math.abs(i - myIdx) <= 4);
+  return near.length ? pick(near) : pick(pool);
+}
+
+function advanceWeek() {
+  if (S.retired) return;
+  S.queue = [];
+  const rep = doActivity();
+  S.queue.push({ type: 'report', title: S.week + '주차 활동', lines: rep });
+
+  const ppv = isPPV(S.week);
+  if (P.injury > 0) {
+    S.queue.push({ type: 'report', title: '결장', lines: ['<span class="rd">' + P.injName + ' 치료 중 - 이번 주 경기 없음 (잔여 ' + P.injury + '주)</span>'] });
+    P.pop = cl(P.pop - .8, 0, 100);
+  } else {
+    /* 라이벌 세그먼트 */
+    if (S.feud && !ppv && Math.random() < .7) S.queue.push({ type: 'segment' });
+    /* 경기 배정 */
+    const chance = ppv ? .95 : .45 + pushLv(P) * .11;
+    if (Math.random() < chance) {
+      const opp = pickOpponent();
+      if (opp) {
+        const ctx = { ppv: ppv, title: null, job: false, blowoff: false };
+        if (ppv) {
+          ctx.name = ppvName(S.week);
+          const tk = P.brand === 'main' ? 'world' : 'rising';
+          if (titleShotOK()) ctx.title = tk;
+          if (ctx.title) { const ch = findW(S.titles[tk]); if (ch && ch.id !== P.id) ctx.oppOverride = ch; }
+          if (S.feud) ctx.blowoff = true;
+        }
+        /* 부커의 잡 지시 */
+        if (!ctx.title && !ppv && pushLv(P) <= 3 && Math.random() < .18) ctx.jobOffer = true;
+        S.queue.push({ type: 'match', opp: ctx.oppOverride || opp, ctx: ctx });
+      }
+    } else if (!ppv) {
+      S.queue.push({ type: 'report', title: '이번 주 쇼', lines: ['<span class="dim">출전 기회를 얻지 못했습니다. 부커의 눈에 들어야 합니다.</span>'] });
+      P.pop = cl(P.pop - .5, 0, 100);
+    }
+    /* 랜덤 이벤트 */
+    if (Math.random() < .34) { const e = rollEvent(); if (e) S.queue.push({ type: 'event', ev: e }); }
+  }
+  runQueue();
+}
+
+function endWeek() {
+  /* 수입/지출 */
+  S.money += P.salary - (40 + Math.round(P.pop * 2));
+  if (P.injury > 0) S.money -= 60;
+  P.contract--;
+  /* 컨디션 자연 회복 · 인지도 자연 감소(비례) */
+  P.cond = cl(P.cond + 6, 0, 100);
+  S.trust = cl(S.trust + (50 - S.trust) * .03, 0, 100);
+  P.pop = cl(P.pop - (.2 + P.pop * .008), 0, 100);
+  if (P.pop > P.st.peak) P.st.peak = P.pop;
+  /* 라이벌 진행 */
+  if (S.feud) { S.feud.weeks++; if (S.feud.weeks > 14) { S.feud = null; } }
+  else if (Math.random() < .07 && P.injury === 0) startFeud();
+  /* AI 로스터 변동 */
+  S.roster.forEach(w => {
+    w.pop = cl(w.pop + (w.home - w.pop) * .06 + rnd(-1.1, 1.1), 3, 98);
+    if (Math.random() < .02) { w.rec.w++; } else if (Math.random() < .02) w.rec.l++;
+  });
+  if (Math.random() < .25) aiTitleNews();
+  /* 승격 */
+  if (P.brand === 'next' && P.pop >= 58 && S.week > 20) promote();
+  /* 계약 */
+  if (P.contract <= 0) contractRenew();
+  /* 연말 */
+  if (S.week % 52 === 0) yearEnd();
+  S.week++;
+  S.act = null;
+  save();
+  if (P.age >= 40 && !S.retired && !S.retireAsked) { S.retireAsked = true; openRetire(true); }
+}
+
+function aiTitleNews() {
+  const tk = Math.random() < .5 ? 'rising' : 'world';
+  if (S.titles[tk] === P.id) return;
+  const ch = findW(S.titles[tk]);
+  const pool = brandPool(TITLES[tk].brand).filter(w => w.id !== ch.id);
+  if (!ch || !pool.length) return;
+  const ch2 = pick(pool);
+  if (Math.random() < .22) {
+    S.titles[tk] = ch2.id; ch2.pop = cl(ch2.pop + 6, 0, 98);
+    news(ch2.name + '이(가) ' + ch.name + '을(를) 꺾고 새 ' + TITLES[tk].n + '에 등극.', true);
+  } else {
+    news(ch.name + ', ' + ch2.name + '의 도전을 막고 ' + TITLES[tk].n + ' 방어 성공.');
+  }
+}
+function promote() {
+  P.brand = 'main'; P.salary = BRANDS.main.pay;
+  news('★ ' + P.name + ' 선수, GWF 메인로스터 승격! ★', true);
+  S.queue = [{ type: 'report', title: '메인로스터 승격', lines: [
+    '<b class="gold">GWF 메인로스터로 승격했습니다!</b>',
+    '주급이 $' + BRANDS.main.pay + '로 인상되었습니다.',
+    '<span class="dim">이제 월드 여성 챔피언십을 노릴 수 있습니다.</span>'] }];
+  runQueue(true);
+}
+function contractRenew() {
+  if (P.pop < 18 && S.trust < 25) {
+    P.brand = 'next'; P.salary = BRANDS.next.pay; P.contract = 52;
+    P.pop = cl(P.pop - 6, 0, 100); S.trust = cl(S.trust + 10, 0, 100);
+    news('계약 조건 악화. ' + P.name + ' 선수는 NEXT로 강등되었습니다.', true);
+  } else {
+    P.salary = Math.round(BRANDS[P.brand].pay * (1 + P.pop / 55));
+    P.contract = 52;
+    news('재계약 체결. 주급 $' + P.salary + '.');
+  }
+}
+function yearEnd() {
+  P.age++;
+  const lines = ['<b>' + P.age + '세 시즌을 맞이합니다.</b>'];
+  if (P.age >= 31) {
+    ['power', 'aerial', 'stam'].forEach(k => {
+      if (Math.random() < (P.age - 30) * .09 && P.attr[k] > 4) { P.attr[k]--; lines.push('<span class="rd">▼ ' + ATTRS.find(a => a.k === k).n + ' 하락 (노쇠) → ' + P.attr[k] + '</span>'); }
+    });
+  }
+  const ys = P.st.matches ? r1(P.st.stars / P.st.matches) : 0;
+  lines.push('통산 ' + P.st.matches + '경기 · 평균 ★' + ys);
+  S.queue.push({ type: 'report', title: '시즌 종료', lines: lines });
+}
+
+/* ==========================================================
+   라이벌(피드) / 랜덤 이벤트
+   ========================================================== */
+function startFeud() {
+  const list = rankList(P.brand).filter(w => w.ai);
+  if (!list.length) return;
+  const o = pick(list.slice(0, 6));
+  S.feud = { oppId: o.id, heat: 20, weeks: 0 };
+  news(o.name + '와(과)의 대립 구도가 시작되었습니다.', true);
+}
+const SEGMENTS = [
+  { t: '도발 프로모', d: '마이크를 잡고 정면으로 도발한다', heat: [8, 16], trust: [1, 4], cond: 4, cha: 1.2 },
+  { t: '기습 공격', d: '경기 중 난입해 기습한다', heat: [14, 24], trust: [-4, 3], cond: 9, risk: .08 },
+  { t: '무시 전략', d: '반응하지 않고 실력으로 보여준다', heat: [1, 5], trust: [2, 6], cond: 1 }
+];
+function rollEvent() {
+  const list = EVENTS.filter(e => !e.cond || e.cond());
+  return list.length ? pick(list) : null;
+}
+const EVENTS = [
+  { id: 'mag', t: '잡지 화보 제안', x: '스포츠 매거진에서 커버 화보 촬영을 제안했습니다.',
+    o: [{ t: '수락한다', d: '인지도 +, 컨디션 -', f: () => { P.pop = cl(P.pop + ri(3, 6), 0, 100); P.cond = cl(P.cond - 8, 0, 100); return ['화보가 화제가 되었습니다. 인지도 상승!']; } },
+        { t: '훈련에 집중', d: '능력치 XP +', f: () => gainXp(pick(['power', 'tech', 'aerial']), 4).concat(['훈련장에 남았습니다.']) }] },
+  { id: 'fan', t: '팬 미팅', x: '지역 팬 미팅 요청이 들어왔습니다.',
+    o: [{ t: '참석한다', d: '인지도 + · 자금 -', f: () => { P.pop = cl(P.pop + ri(2, 4), 0, 100); S.money -= 50; return ['팬들과 교감했습니다.']; } },
+        { t: '거절한다', d: '컨디션 +', f: () => { P.cond = cl(P.cond + 8, 0, 100); return ['휴식을 택했습니다.']; } }] },
+  { id: 'job', t: '부커의 요청', x: '부커가 다음 신인을 띄우기 위해 패배를 부탁했습니다.',
+    cond: () => pushLv(P) >= 2,
+    o: [{ t: '받아들인다', d: '신뢰 ++ · 인지도 -', f: () => { S.trust = cl(S.trust + ri(5, 9), 0, 100); P.pop = cl(P.pop - 2, 0, 100); return ['프로다운 판단이라는 평가를 받았습니다.']; } },
+        { t: '거부한다', d: '신뢰 -- · 인지도 유지', f: () => { S.trust = cl(S.trust - ri(8, 15), 0, 100); return ['백스테이지 분위기가 싸늘해졌습니다.']; } }] },
+  { id: 'trainer', t: '전담 트레이너', x: '유명 트레이너가 4주 단기 코칭을 제안합니다. ($400)',
+    cond: () => S.money >= 400 && S.gymWeeks === 0,
+    o: [{ t: '계약한다 ($400)', d: '4주간 훈련 효율 +75%', f: () => { S.money -= 400; S.gymWeeks = 4; return ['4주간 훈련 효율이 크게 오릅니다.']; } },
+        { t: '사양한다', d: '변화 없음', f: () => ['자금을 아꼈습니다.'] }] },
+  { id: 'attack', t: '기습', x: S_feudName, cond: () => !!S.feud,
+    o: [{ t: '맞선다', d: '열기 ++ · 부상 위험', f: () => { S.feud.heat += ri(10, 20); if (Math.random() < .12) { P.injury = ri(1, 3); P.injName = '타박상'; return ['난투 끝에 부상을 입었습니다! (' + P.injury + '주)']; } return ['치열한 난투로 대립이 뜨거워졌습니다.']; } },
+        { t: '물러선다', d: '열기 + · 안전', f: () => { S.feud.heat += 4; P.pop = cl(P.pop - 1, 0, 100); return ['안전을 택했지만 관중은 실망했습니다.'] } }] },
+  { id: 'scandal', t: '루머', x: '태도 논란 기사가 인터넷에 퍼졌습니다.',
+    o: [{ t: '공개 해명', d: '신뢰 + · 인지도 -', f: () => { S.trust = cl(S.trust + 6, 0, 100); P.pop = cl(P.pop - 2, 0, 100); return ['진정성 있는 해명으로 수습했습니다.']; } },
+        { t: '캐릭터로 활용', d: '인지도 ++ · 신뢰 -', f: () => { P.pop = cl(P.pop + ri(3, 7), 0, 100); S.trust = cl(S.trust - 5, 0, 100); return ['논란을 힐 캐릭터로 흡수했습니다.']; } }] },
+  { id: 'tour', t: '해외 원정', x: '일본 원정 투어 합류 제안입니다.',
+    o: [{ t: '합류한다', d: '테크닉/셀링 XP ++ · 컨디션 -', f: () => { P.cond = cl(P.cond - 14, 0, 100); return gainXp('tech', 4).concat(gainXp('sell', 4), ['스트롱 스타일을 몸으로 배웠습니다.']); } },
+        { t: '국내에 남는다', d: '인지도 +', f: () => { P.pop = cl(P.pop + 2, 0, 100); return ['국내 활동에 집중했습니다.']; } }] }
+];
+function S_feudName() { return S.feud ? (findW(S.feud.oppId).name + '이(가) 주차장에서 기습해 왔습니다!') : '기습을 당했습니다!'; }
+
+/* ==========================================================
+   저장 / 불러오기
+   ========================================================== */
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
+    S = JSON.parse(raw); P = S.player;
+    uid = Math.max.apply(null, S.roster.map(w => w.id)) + 1;
+    S.queue = []; S.phase = 'idle';
+    return true;
+  } catch (e) { return false; }
+}
+function wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+
+/* ==========================================================
+   모달 / 큐 진행
+   ========================================================== */
+function openModal(html) { $('#mbox').innerHTML = html; $('#modal').classList.add('on'); repaintAll($('#mbox')); $('#mbox').scrollTop = 0; }
+function closeModal() { $('#modal').classList.remove('on'); }
+
+function runQueue() {
+  if (S.queue.length) {
+    const it = S.queue.shift();
+    if (it.type === 'report') return showReport(it);
+    if (it.type === 'match') return showMatchIntro(it);
+    if (it.type === 'segment') return showSegment();
+    if (it.type === 'event') return showEvent(it.ev);
+    if (it.type === 'retire') return showRetire();
+    return runQueue();
+  }
+  if (S.phase === 'week') { S.phase = 'post'; endWeek(); if (S.queue.length) return runQueue(); }
+  S.phase = 'idle'; closeModal(); render();
+}
+function showReport(it) {
+  openModal('<div class="mtitle">' + esc(it.title) + '</div>' +
+    '<div class="pnl alt">' + it.lines.map(l => '<p style="margin-bottom:5px">' + l + '</p>').join('') + '</div>' +
+    '<button class="btn pri" onclick="runQueue()">확인</button>');
+}
+function showEvent(ev) {
+  const txt = typeof ev.x === 'function' ? ev.x() : ev.x;
+  const idx = EVENTS.indexOf(ev);
+  openModal('<div class="mtitle">' + esc(ev.t) + '</div>' +
+    '<div class="pnl alt mini">' + esc(txt) + '</div>' +
+    ev.o.map((o, i) => '<button class="opt" onclick="chooseEvent(' + idx + ',' + i + ')"><b>' + esc(o.t) + '</b><span>' + esc(o.d) + '</span></button>').join(''));
+}
+function chooseEvent(ei, oi) {
+  const lines = EVENTS[ei].o[oi].f() || [];
+  showReport({ title: EVENTS[ei].t, lines: lines });
+}
+function showSegment() {
+  const o = findW(S.feud.oppId);
+  openModal('<div class="mtitle">대립 세그먼트</div>' +
+    '<div class="pnl alt mini center">' + spr(o.look, 4) +
+    '<div style="margin-top:6px"><b>' + esc(o.name) + '</b></div>' +
+    '<div class="dim">대립 열기 ' + Math.round(S.feud.heat) + '</div></div>' +
+    SEGMENTS.map((s, i) => '<button class="opt" onclick="chooseSeg(' + i + ')"><b>' + esc(s.t) + '</b><span>' + esc(s.d) + '</span></button>').join(''));
+}
+function chooseSeg(i) {
+  const s = SEGMENTS[i], lines = [];
+  const h = ri(s.heat[0], s.heat[1]); S.feud.heat = cl(S.feud.heat + h, 0, 100);
+  const t = ri(s.trust[0], s.trust[1]); S.trust = cl(S.trust + t, 0, 100);
+  P.cond = cl(P.cond - s.cond, 0, 100);
+  lines.push('대립 열기 +' + h + ' (현재 ' + Math.round(S.feud.heat) + ')');
+  lines.push('부커 신뢰 ' + (t >= 0 ? '+' : '') + t);
+  if (s.cha) lines.push(...gainXp('cha', s.cha));
+  if (s.risk && Math.random() < s.risk) { P.injury = ri(1, 3); P.injName = '타박상'; lines.push('<b class="rd">난투 중 부상! ' + P.injury + '주</b>'); }
+  showReport({ title: s.t, lines: lines });
+}
+
+/* ==========================================================
+   경기 화면
+   ========================================================== */
+let MV = null;
+function showMatchIntro(it) {
+  const o = it.opp, c = it.ctx;
+  let head = c.ppv ? '<span class="gold">PPV · ' + esc(c.name) + '</span>' : 'GWF 위클리 쇼';
+  if (c.title) head += '<br><span class="gold">★ ' + TITLES[c.title].n + ' 매치 ★</span>';
+  let body = '<div class="mtitle">' + head + '</div>' +
+    '<div class="pnl alt"><div class="row">' +
+    '<div class="center" style="flex:1">' + spr(P.look, 4) + '<div class="mini">' + esc(P.name) + '</div><div class="tiny dim">OVR ' + ovr(P) + '</div></div>' +
+    '<div class="pk" style="font-size:18px">VS</div>' +
+    '<div class="center" style="flex:1">' + spr(o.look, 4) + '<div class="mini">' + esc(o.name) + '</div><div class="tiny dim">OVR ' + ovr(o) + ' · ' + STYLES[o.style].n + '</div></div>' +
+    '</div></div>';
+  if (c.jobOffer) {
+    body += '<div class="pnl mini">부커: "이번엔 ' + esc(o.name) + '를 띄우자. 져줄 수 있겠나?"</div>' +
+      '<button class="opt" onclick="startMatch(1)"><b>지시를 따른다</b><span>신뢰 ++ · 패배 확정</span></button>' +
+      '<button class="opt" onclick="startMatch(0)"><b>내 경기를 한다</b><span>신뢰 - · 승부는 부커 판단</span></button>';
+  } else {
+    body += '<button class="btn pri" onclick="startMatch(0)">경기 시작</button>';
+  }
+  MV = it;
+  openModal(body);
+}
+function startMatch(accept) {
+  const c = MV.ctx;
+  if (c.jobOffer) { c.job = !!accept; if (!accept) S.trust = cl(S.trust - ri(6, 12), 0, 100); else S.trust = cl(S.trust + ri(5, 9), 0, 100); }
+  MV.res = simMatch(MV.opp, c);
+  MV.i = 0; MV.mom = 0;
+  drawMatch();
+  MV.timer = setInterval(stepMatch, 620);
+}
+function drawMatch() {
+  const o = MV.opp;
+  openModal('<div class="mtitle">' + (MV.ctx.ppv ? esc(MV.ctx.name) : 'GWF 위클리 쇼') + '</div>' +
+    '<div class="ring"><div class="ropes" style="top:26px"></div><div class="ropes" style="top:46px"></div>' +
+    '<div class="mat"></div><div class="fighters">' +
+    '<canvas id="fA" class="sprite" width="64" height="96" data-look="' + esc(JSON.stringify(P.look)) + '" data-sc="4"></canvas>' +
+    '<canvas id="fB" class="sprite" width="64" height="96" data-look="' + esc(JSON.stringify(o.look)) + '" data-sc="4"></canvas>' +
+    '</div></div>' +
+    '<div class="hpwrap"><div>' + esc(P.name) + '<div class="bar"><i id="hA" style="width:50%"></i></div></div>' +
+    '<div style="text-align:right">' + esc(o.name) + '<div class="bar c"><i id="hB" style="width:50%;margin-left:auto"></i></div></div></div>' +
+    '<div class="mlog" id="mlog"></div>' +
+    '<div class="btns g2" style="margin-top:8px">' +
+    '<button class="btn sm" onclick="skipMatch()">빨리감기 ▶▶</button>' +
+    '<button class="btn sm pri" id="mEnd" disabled>결과</button></div>');
+}
+function stepMatch() {
+  const L = MV.res.log;
+  if (MV.i >= L.length) { finishPlay(); return; }
+  const b = L[MV.i++];
+  const box = $('#mlog');
+  if (box) {
+    const p = document.createElement('p');
+    p.className = b.t; p.innerHTML = esc(b.s);
+    box.appendChild(p); box.scrollTop = box.scrollHeight;
+  }
+  if (b.me !== undefined) {
+    MV.mom = cl(MV.mom + (b.me ? 1 : -1) * (b.t === 'big' ? 2 : 1), -6, 6);
+    const pct = 50 + MV.mom * 7;
+    const a = $('#hA'), bb = $('#hB');
+    if (a) a.style.width = pct + '%';
+    if (bb) bb.style.width = (100 - pct) + '%';
+    const f = $(b.me ? '#fA' : '#fB');
+    if (f) { f.classList.add(b.me ? 'lunge-l' : 'lunge-r'); setTimeout(() => f.classList.remove('lunge-l', 'lunge-r'), 200); }
+  }
+}
+function skipMatch() {
+  clearInterval(MV.timer);
+  while (MV.i < MV.res.log.length) stepMatch();
+  finishPlay();
+}
+function finishPlay() {
+  clearInterval(MV.timer); MV.timer = null;
+  const b = $('#mEnd');
+  if (b) { b.disabled = false; b.onclick = matchResult; }
+  else matchResult();
+}
+function starStr(s) {
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += (s >= i ? '★' : (s >= i - .5 ? '☆' : '·'));
+  return out;
+}
+function matchResult() {
+  const res = MV.res;
+  const lines = applyMatch(res);
+  news(P.name + (res.win ? ' 승리' : ' 패배') + ' vs ' + res.opp.name + ' (★' + res.stars + ')', res.ctx.ppv);
+  openModal('<div class="mtitle">경기 결과</div>' +
+    '<div class="pnl alt center">' +
+    '<div style="font-size:20px" class="' + (res.win ? 'gr' : 'rd') + '">' + (res.win ? 'WIN' : 'LOSE') + '</div>' +
+    '<div class="stars">' + starStr(res.stars) + '</div>' +
+    '<div class="tiny dim">경기 평점 ' + res.stars.toFixed(1) + ' / 5.0</div></div>' +
+    '<div class="pnl mini">' + lines.map(l => '<p style="margin-bottom:4px">' + l + '</p>').join('') + '</div>' +
+    '<button class="btn pri" onclick="MV=null;runQueue()">계속</button>');
+}
+
+/* ==========================================================
+   은퇴 / 명예의 전당
+   ========================================================== */
+function openRetire(forced) { S.queue.push({ type: 'retire', forced: !!forced }); }
+function retireNow() { S.queue = [{ type: 'retire', forced: false }]; S.phase = 'post'; runQueue(); }
+function hofScore() {
+  const avg = P.st.matches ? P.st.stars / P.st.matches : 0;
+  return Math.round(P.st.titles * 28 + avg * 22 + P.st.peak * .7 + P.st.matches * .35 + P.st.ppv * 1.5 + P.rec.w * .2);
+}
+function hofRank(s) {
+  return s >= 180 ? '전설 (LEGEND)' : s >= 130 ? '명예의 전당' : s >= 90 ? '메인이벤터' : s >= 55 ? '미드카더' : s >= 25 ? '언더카드' : '무명';
+}
+function showRetire() {
+  openModal('<div class="mtitle">은퇴</div>' +
+    '<div class="pnl alt mini">지금 커리어를 마감하시겠습니까?<br><span class="dim">되돌릴 수 없습니다.</span></div>' +
+    '<div class="btns g2"><button class="btn" onclick="runQueue()">계속 뛴다</button>' +
+    '<button class="btn pri" onclick="doRetire()">은퇴한다</button></div>');
+}
+function doRetire() {
+  S.retired = true; S.hof = hofScore();
+  news(P.name + ' 선수가 은퇴를 선언했습니다.', true);
+  save(); closeModal(); render();
+}
+
+/* ==========================================================
+   렌더링
+   ========================================================== */
+let mode = 'title';
+let CR = null;
+let rosterBrand = 'next';
+
+function render() {
+  if (mode === 'title') return renderTitle();
+  if (mode === 'create') return renderCreate();
+  if (S && S.retired) return renderHOF();
+  renderHeader(); renderNav(); renderTab();
+  repaintAll($('#app'));
+}
+function bar(v, max, cls, potPct) {
+  return '<div class="bar ' + (cls || '') + '"><i style="width:' + cl(v / max * 100, 0, 100) + '%"></i>' +
+    (potPct !== undefined ? '<span class="pot" style="left:' + cl(potPct, 0, 99) + '%"></span>' : '') + '</div>';
+}
+function renderHeader() {
+  const nx = isPPV(S.week) ? '<span class="gold">PPV</span>' : '위클리';
+  $('#hd').innerHTML =
+    '<div class="hbar"><div class="hname pk">' + esc(P.name) + '</div>' +
+    '<div class="tiny dim">' + Math.ceil(S.week / 52) + '년차 ' + S.week + '주 · ' + nx + '</div></div>' +
+    '<div class="hstat">' +
+    '<div><span>컨디션</span>' + Math.round(P.cond) + '</div>' +
+    '<div><span>인지도</span>' + Math.round(P.pop) + '</div>' +
+    '<div><span>신뢰</span>' + Math.round(S.trust) + '</div>' +
+    '<div><span>자금</span>$' + S.money + '</div></div>';
+}
+const TABS = [['home', '홈', '●'], ['train', '훈련', '▲'], ['rank', '랭킹', '▤'], ['career', '커리어', '★'], ['sys', '설정', '⚙']];
+function renderNav() {
+  $('#nv').innerHTML = TABS.map(t =>
+    '<button class="' + (tab === t[0] ? 'on' : '') + '" onclick="tab=\'' + t[0] + '\';render()">' +
+    '<i class="ic">' + t[2] + '</i>' + t[1] + '</button>').join('');
+}
+function renderTab() {
+  const f = { home: vHome, train: vTrain, rank: vRank, career: vCareer, sys: vSys }[tab];
+  $('#mn').innerHTML = '<div class="fade">' + f() + '</div>';
+  $('#mn').scrollTop = 0;
+}
+
+/* ---------- 홈 ---------- */
+function vHome() {
+  const rk = rankOf(P), lv = pushLv(P);
+  let h = '<div class="pnl"><div class="row">' +
+    '<div>' + spr(P.look, 5) + '</div><div style="flex:1">' +
+    '<div class="pk">' + esc(P.name) + '</div>' +
+    '<div class="tiny dim">' + STYLES[P.style].n + ' · ' + (P.align === 'face' ? '페이스' : '힐') + ' · ' + P.age + '세</div>' +
+    '<div class="mini" style="margin-top:4px">OVR <b class="gold">' + ovr(P) + '</b> · ' + BRANDS[P.brand].n + '</div>' +
+    '<div class="mini">푸시 <b class="cy">' + PUSH_NAME[lv] + '</b> · 랭킹 <b>' + rk + '위</b></div>' +
+    '<div class="mini">전적 ' + P.rec.w + '승 ' + P.rec.l + '패' + (holdsAny() ? ' <span class="badge t">CHAMPION</span>' : '') + '</div>' +
+    '</div></div>';
+  h += '<div class="mini" style="margin-top:6px">컨디션' + bar(P.cond, 100, P.cond > 60 ? 'g' : P.cond > 30 ? 'o' : '') + '</div>';
+  if (P.injury > 0) h += '<div class="mini rd" style="margin-top:4px">부상: ' + esc(P.injName) + ' (잔여 ' + P.injury + '주)</div>';
+  h += '</div>';
+
+  h += '<div class="pnl"><div class="ttl">이번 주 <b>' + S.week + 'W</b></div>';
+  h += isPPV(S.week)
+    ? '<div class="gold mini">★ PPV "' + ppvName(S.week) + '" 개최 주간</div>'
+    : '<div class="mini dim">GWF 위클리 쇼 · 출전 확률 ' + Math.round((.45 + lv * .11) * 100) + '%</div>';
+  h += titleShotOK()
+    ? '<div class="mini gr" style="margin-top:4px">타이틀 매치 자격 충족 (' + (isPPV(S.week) ? '이번 PPV' : '다음 PPV') + ')</div>'
+    : '<div class="tiny dim" style="margin-top:4px">타이틀 도전 조건: 랭킹 2위 이내 · 인지도 ' + (P.brand === 'main' ? 62 : 45) + ' 이상</div>';
+  if (S.feud) {
+    const o = findW(S.feud.oppId);
+    h += '<hr class="px"><div class="mini">대립: <b class="pk">' + esc(o.name) + '</b></div>' +
+      '<div class="tiny dim">열기</div>' + bar(S.feud.heat, 100, '');
+  }
+  h += '</div>';
+
+  h += '<div class="pnl"><div class="ttl">주간 활동 선택</div>';
+  ACTS.forEach(a => {
+    const on = S.act && S.act.k === a.k;
+    h += '<button class="opt ' + (on ? 'on' : '') + '" onclick="setAct(\'' + a.k + '\')"><b>' + a.n + '</b><span>' + a.d + '</span></button>';
+    if (a.k === 'train' && on) {
+      h += '<div class="btns g2" style="margin-bottom:7px">' + ATTRS.map(at =>
+        '<button class="btn sm ' + (S.act.attr === at.k ? 'pri' : '') + '" onclick="setAct(\'train\',\'' + at.k + '\')">' +
+        at.n + ' ' + P.attr[at.k] + '</button>').join('') + '</div>';
+    }
+  });
+  h += '<button class="btn pri" onclick="goWeek()">▶ 이번 주 진행</button></div>';
+
+  h += '<div class="pnl"><div class="ttl">최근 소식</div>' +
+    S.news.slice(0, 5).map(n => '<div class="newsline ' + (n.hot ? 'hot' : '') + '"><span class="dim tiny">' + n.w + 'W</span> ' + esc(n.t) + '</div>').join('') + '</div>';
+  return h;
+}
+function titleShotOK() {
+  const tk = P.brand === 'main' ? 'world' : 'rising';
+  return holds(tk) || (rankOf(P) <= 2 && P.pop >= (P.brand === 'main' ? 62 : 45));
+}
+function setAct(k, attr) {
+  if (k === 'train') S.act = { k: 'train', attr: attr || (S.act && S.act.attr) || 'power' };
+  else S.act = { k: k };
+  render();
+}
+function goWeek() {
+  if (!S.act) { openModal('<div class="mtitle">활동 미선택</div><div class="pnl alt mini">이번 주 활동을 먼저 선택하세요.</div><button class="btn pri" onclick="closeModal()">확인</button>'); return; }
+  S.phase = 'week';
+  advanceWeek();
+}
+
+/* ---------- 훈련 ---------- */
+const SHOP = [
+  { n: '전담 트레이너 (4주)', d: '훈련 효율 +75%', c: 400, f: () => { S.gymWeeks += 4; return '4주간 훈련 효율이 상승합니다.'; }, ok: () => S.gymWeeks === 0 },
+  { n: '집중 치료', d: '부상 회복 2주 단축', c: 250, f: () => { P.injury = Math.max(0, P.injury - 2); return '부상 잔여 ' + P.injury + '주.'; }, ok: () => P.injury > 0 },
+  { n: '이미지 컨설팅', d: '인지도 +5 · 카리스마 XP', c: 300, f: () => { P.pop = cl(P.pop + 5, 0, 100); gainXp('cha', 3); return '이미지가 개선되었습니다.'; }, ok: () => true },
+  { n: '잠재력 개발 캠프', d: '가장 낮은 잠재치 능력 +1 (구매할수록 비싸짐)', c: () => 1200 * (1 + (S.camps || 0)), f: () => {
+      S.camps = (S.camps || 0) + 1;
+      const k = ATTRS.map(a => a.k).filter(k => P.pot[k] < 20).sort((a, b) => P.pot[a] - P.pot[b])[0];
+      if (!k) return '모든 능력이 한계치입니다.';
+      P.pot[k]++; return ATTRS.find(a => a.k === k).n + ' 잠재치 ' + P.pot[k] + '로 상승.';
+    }, ok: () => ATTRS.some(a => P.pot[a.k] < 20) }
+];
+function cost(s) { return typeof s.c === 'function' ? s.c() : s.c; }
+function vTrain() {
+  const pa = ATTRS.reduce((n, a) => n + P.pot[a.k], 0) / 6;
+  const talent = pa >= 17 ? '월드클래스' : pa >= 15 ? '메인이벤터급' : pa >= 13 ? '준메인급' : pa >= 11 ? '미드카더급' : '언더카드급';
+  let h = '<div class="pnl"><div class="row"><span class="ttl" style="margin:0">능력치</span>' +
+    '<span class="tiny">재능 <b class="gold">' + talent + '</b> (평균 잠재 ' + r1(pa) + ')</span></div>' +
+    '<div class="tiny dim" style="margin:4px 0 8px">현재 / 잠재(노란선)</div>';
+  ATTRS.forEach(a => {
+    const v = P.attr[a.k], pt = P.pot[a.k];
+    const xpPct = Math.round(P.xp[a.k] / needXp(v) * 100);
+    h += '<div class="attr"><div class="row"><span>' + a.n + '</span>' +
+      '<span><b class="' + (v >= pt ? 'gold' : '') + '">' + v + '</b><span class="dim">/' + pt + '</span></span></div>' +
+      bar(v, 20, v >= pt ? 'o' : '', pt / 20 * 100) +
+      '<div class="tiny dim">' + a.d + ' · XP ' + xpPct + '%</div></div>';
+  });
+  h += '</div>';
+  h += '<div class="pnl"><div class="ttl">지원 프로그램 <b>$' + S.money + '</b></div>' +
+    (S.gymWeeks > 0 ? '<div class="mini cy">전담 트레이너 활성 (' + S.gymWeeks + '주 남음)</div><hr class="px">' : '') +
+    SHOP.map((s, i) => '<div class="row" style="margin-bottom:7px"><div class="mini" style="flex:1"><b>' + s.n + '</b><br><span class="dim tiny">' + s.d + '</span></div>' +
+      '<button class="btn sm ' + (S.money >= cost(s) && s.ok() ? 'pri' : '') + '" style="width:88px" ' + (S.money >= cost(s) && s.ok() ? '' : 'disabled') + ' onclick="buy(' + i + ')">$' + cost(s) + '</button></div>').join('') + '</div>';
+  h += '<div class="pnl mini dim">훈련 효율은 나이(' + P.age + '세)와 컨디션에 영향을 받습니다. 잠재치에 도달한 능력치는 더 이상 오르지 않습니다.</div>';
+  return h;
+}
+function buy(i) {
+  const s = SHOP[i];
+  const c = cost(s);
+  if (S.money < c || !s.ok()) return;
+  S.money -= c;
+  const msg = s.f(); save();
+  showReport({ title: s.n, lines: [msg] });
+  S.phase = 'idle';
+}
+
+/* ---------- 랭킹 ---------- */
+function vRank() {
+  const list = rankList(rosterBrand).slice(0, 14);
+  let h = '<div class="pnl"><div class="ttl">타이틀 현황</div>' +
+    '<div class="mini"><span class="badge t">NEXT</span> ' + esc(champName('rising')) + '</div>' +
+    '<div class="mini" style="margin-top:4px"><span class="badge t">WORLD</span> ' + esc(champName('world')) + '</div></div>';
+  h += '<div class="btns g2" style="margin-bottom:10px">' +
+    '<button class="btn sm ' + (rosterBrand === 'next' ? 'pri' : '') + '" onclick="rosterBrand=\'next\';render()">GWF NEXT</button>' +
+    '<button class="btn sm ' + (rosterBrand === 'main' ? 'pri' : '') + '" onclick="rosterBrand=\'main\';render()">메인로스터</button></div>';
+  h += list.map((w, i) => {
+    const me = w.id === P.id;
+    const champ = S.titles.rising === w.id || S.titles.world === w.id;
+    return '<div class="card" style="' + (me ? 'border-color:var(--pink)' : '') + '">' +
+      '<div class="gold" style="width:22px;text-align:center">' + (i + 1) + '</div>' + spr(w.look, 2) +
+      '<div class="info"><div class="nm ' + (me ? 'pk' : '') + '">' + esc(w.name) + '</div>' +
+      '<div class="tiny dim">' + STYLES[w.style].n + ' · OVR ' + ovr(w) + ' · ' + w.rec.w + 'W ' + w.rec.l + 'L</div>' +
+      '<div class="tiny">인지도 ' + Math.round(w.pop) + ' ' + (champ ? '<span class="badge t">CHAMP</span>' : '') +
+      (S.feud && S.feud.oppId === w.id ? '<span class="badge p">라이벌</span>' : '') + '</div></div></div>';
+  }).join('');
+  return h;
+}
+
+/* ---------- 커리어 ---------- */
+function vCareer() {
+  const avg = P.st.matches ? r1(P.st.stars / P.st.matches) : 0;
+  let h = '<div class="pnl"><div class="ttl">커리어 기록</div><div class="grid2">' +
+    '<div class="stat"><b>' + P.rec.w + '-' + P.rec.l + '</b><span>전적</span></div>' +
+    '<div class="stat"><b>' + P.st.matches + '</b><span>총 경기</span></div>' +
+    '<div class="stat"><b>★' + avg + '</b><span>평균 평점</span></div>' +
+    '<div class="stat"><b>★' + P.st.best + '</b><span>최고 평점</span></div>' +
+    '<div class="stat"><b>' + P.st.ppv + '</b><span>PPV 출전</span></div>' +
+    '<div class="stat"><b>' + P.st.titles + '</b><span>타이틀 획득</span></div>' +
+    '<div class="stat"><b>' + (P.st.shots || 0) + '</b><span>타이틀전 출전</span></div>' +
+    '<div class="stat"><b>' + Math.round(P.st.peak) + '</b><span>최고 인지도</span></div>' +
+    '</div></div>';
+  h += '<div class="pnl"><div class="ttl">타이틀 이력</div>' +
+    (P.st.reigns.length ? P.st.reigns.map(r => '<div class="mini">· ' + TITLES[r.t].n + ' <span class="dim">(' + r.from + 'W ~ ' + (r.to ? r.to + 'W' : '현재') + ')</span></div>').join('')
+      : '<div class="mini dim">아직 없습니다.</div>') + '</div>';
+  h += '<div class="pnl"><div class="ttl">명예의 전당 예상</div>' +
+    '<div class="center"><div style="font-size:22px" class="gold">' + hofScore() + '</div>' +
+    '<div class="mini">' + hofRank(hofScore()) + '</div></div></div>';
+  h += '<div class="pnl"><div class="ttl">뉴스 아카이브</div>' +
+    S.news.slice(0, 20).map(n => '<div class="newsline ' + (n.hot ? 'hot' : '') + '"><span class="dim tiny">' + n.w + 'W</span> ' + esc(n.t) + '</div>').join('') + '</div>';
+  return h;
+}
+
+/* ---------- 설정 ---------- */
+function vSys() {
+  return '<div class="pnl"><div class="ttl">시스템</div>' +
+    '<div class="btns">' +
+    '<button class="btn" onclick="save();toast(\'저장했습니다.\')">수동 저장</button>' +
+    '<button class="btn" onclick="if(load()){tab=\'home\';render();toast(\'불러왔습니다.\')}">저장 불러오기</button>' +
+    '<button class="btn" onclick="retireNow()">은퇴하고 결산 보기</button>' +
+    '<button class="btn" onclick="confirmNew()">새 커리어 시작</button>' +
+    '</div></div>' +
+    '<div class="pnl mini dim">매주 자동 저장됩니다.<br>승패는 부커의 푸시 판단으로 결정되고, 능력치와 컨디션은 <b class="gold">경기 평점(★)</b>을 좌우합니다. 평점이 높아야 인지도와 신뢰가 오르고, 그래야 푸시를 받습니다.</div>' +
+    '<div class="pnl center tiny dim">RING QUEEN v1.0</div>';
+}
+function toast(m) { openModal('<div class="pnl alt mini center">' + esc(m) + '</div><button class="btn pri" onclick="closeModal()">확인</button>'); }
+function confirmNew() {
+  openModal('<div class="mtitle">새 커리어</div><div class="pnl alt mini">현재 저장 데이터가 삭제됩니다.</div>' +
+    '<div class="btns g2"><button class="btn" onclick="closeModal()">취소</button>' +
+    '<button class="btn pri" onclick="wipe();closeModal();mode=\'create\';CR=null;render()">시작</button></div>');
+}
+
+/* ---------- 타이틀 화면 ---------- */
+function renderTitle() {
+  $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
+  const look = { hair: 0, hc: 3, sk: 0, oc: 0, ac: 2 };
+  $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1>RING QUEEN</h1><h2>여자 프로레슬링 매니저</h2></div>' +
+    '<div class="center" style="margin:6px 0 14px">' + spr(look, 6) + '</div>' +
+    '<div class="btns">' +
+    (hasSave() ? '<button class="btn pri" onclick="resume()">이어하기</button>' : '') +
+    '<button class="btn ' + (hasSave() ? '' : 'pri') + '" onclick="mode=\'create\';CR=null;render()">새 커리어</button>' +
+    '</div>' +
+    '<div class="pnl mini dim" style="margin-top:14px">링 위의 승패는 <b class="pk">부커</b>가 정합니다.<br>당신이 정하는 것은 <b class="gold">경기의 질</b>입니다.<br><br>훈련으로 능력치를 키우고, 좋은 경기로 팬을 얻고,<br>백스테이지의 신뢰를 쌓아 메인이벤터가 되십시오.</div></div>';
+  repaintAll($('#mn'));
+}
+function resume() { if (load()) { mode = 'game'; tab = 'home'; render(); } else toast('저장 데이터를 읽을 수 없습니다.'); }
+
+/* ---------- 캐릭터 생성 ---------- */
+const AGES = [[18, '18세', '성장 잠재력 최대'], [22, '22세', '균형형'], [26, '26세', '초기 능력 우수']];
+function renderCreate() {
+  if (!CR) CR = { name: '', style: 'power', align: 'face', age: 18, look: randLook() };
+  const inp = $('#nm'); if (inp) CR.name = inp.value;
+  $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
+  let h = '<div class="fade"><div class="pnl center">' + spr(CR.look, 6) +
+    '<div class="pk" style="margin-top:6px">' + esc(CR.name || '???') + '</div>' +
+    '<div class="tiny dim">' + STYLES[CR.style].n + ' · ' + (CR.align === 'face' ? '페이스(선역)' : '힐(악역)') + ' · ' + CR.age + '세</div></div>';
+  h += '<div class="pnl"><div class="ttl">링네임</div><input type="text" id="nm" maxlength="12" placeholder="예: 네온 스톰" value="' + esc(CR.name) + '"></div>';
+  h += '<div class="pnl"><div class="ttl">파이팅 스타일</div>' +
+    Object.keys(STYLES).map(k => '<button class="opt ' + (CR.style === k ? 'on' : '') + '" onclick="setCR(\'style\',\'' + k + '\')"><b>' + STYLES[k].n + '</b><span>' + STYLES[k].d + ' · ' +
+      ATTRS.map(a => a.n + ' ' + STYLES[k].base[a.k]).join(' / ') + '</span></button>').join('') + '</div>';
+  h += '<div class="pnl"><div class="ttl">캐릭터 성향</div><div class="btns g2">' +
+    '<button class="btn sm ' + (CR.align === 'face' ? 'pri' : '') + '" onclick="setCR(\'align\',\'face\')">페이스(선역)</button>' +
+    '<button class="btn sm ' + (CR.align === 'heel' ? 'pri' : '') + '" onclick="setCR(\'align\',\'heel\')">힐(악역)</button></div></div>';
+  h += '<div class="pnl"><div class="ttl">데뷔 나이</div>' +
+    AGES.map(a => '<button class="opt ' + (CR.age === a[0] ? 'on' : '') + '" onclick="setCR(\'age\',' + a[0] + ')"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('') + '</div>';
+  h += '<div class="pnl"><div class="ttl">외형</div>' +
+    '<div class="mini">헤어</div><div class="swatch" style="margin-bottom:8px">' +
+    HAIR_NAMES.map((n, i) => '<button class="btn sm ' + (CR.look.hair === i ? 'pri' : '') + '" style="width:auto;padding:4px 8px;min-height:34px" onclick="setLook(\'hair\',' + i + ')">' + n + '</button>').join('') + '</div>' +
+    '<div class="mini">머리 색</div><div class="swatch" style="margin-bottom:8px">' +
+    HAIRCOL.map((c, i) => '<button class="' + (CR.look.hc === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'hc\',' + i + ')"></button>').join('') + '</div>' +
+    '<div class="mini">피부</div><div class="swatch" style="margin-bottom:8px">' +
+    SKINS.map((c, i) => '<button class="' + (CR.look.sk === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'sk\',' + i + ')"></button>').join('') + '</div>' +
+    '<div class="mini">코스튬</div><div class="swatch" style="margin-bottom:8px">' +
+    OUTFITS.map((c, i) => '<button class="' + (CR.look.oc === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'oc\',' + i + ')"></button>').join('') + '</div>' +
+    '<div class="mini">포인트 색</div><div class="swatch">' +
+    OUTFITS.map((c, i) => '<button class="' + (CR.look.ac === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'ac\',' + i + ')"></button>').join('') + '</div></div>';
+  h += '<div class="btns g2" style="margin-bottom:20px"><button class="btn" onclick="mode=\'title\';render()">뒤로</button>' +
+    '<button class="btn pri" onclick="startCareer()">데뷔하기</button></div></div>';
+  $('#mn').innerHTML = h;
+  repaintAll($('#mn'));
+}
+function setCR(k, v) { const i = $('#nm'); if (i) CR.name = i.value; CR[k] = v; renderCreate(); }
+function setLook(k, v) { const i = $('#nm'); if (i) CR.name = i.value; CR.look[k] = v; renderCreate(); }
+function startCareer() {
+  const i = $('#nm'); if (i) CR.name = i.value.trim();
+  if (!CR.name) { toast('링네임을 입력하세요.'); return; }
+  newGame(CR);
+  mode = 'game'; tab = 'home'; S.phase = 'idle';
+  closeModal(); render();
+  showReport({ title: '데뷔', lines: [
+    '<b class="gold">' + esc(P.name) + ', GWF NEXT 데뷔!</b>',
+    'GWF NEXT와 1년 계약을 맺었습니다. 주급 $' + P.salary + '.',
+    '<span class="dim">매주 활동을 선택하고 쇼에 출전해 인지도와 부커의 신뢰를 쌓으세요.</span>',
+    '<span class="dim">목표: 월드 여성 챔피언 등극.</span>'] });
+  S.phase = 'idle';
+}
+
+/* ---------- 명예의 전당(엔딩) ---------- */
+function renderHOF() {
+  $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
+  const avg = P.st.matches ? r1(P.st.stars / P.st.matches) : 0;
+  $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1 style="font-size:20px">CAREER END</h1><h2>' + esc(P.name) + '</h2></div>' +
+    '<div class="center">' + spr(P.look, 6) + '</div>' +
+    '<div class="pnl center"><div class="tiny dim">최종 평가</div>' +
+    '<div class="gold" style="font-size:24px">' + S.hof + '</div>' +
+    '<div class="pk">' + hofRank(S.hof) + '</div></div>' +
+    '<div class="pnl"><div class="grid2">' +
+    '<div class="stat"><b>' + P.rec.w + '-' + P.rec.l + '</b><span>통산 전적</span></div>' +
+    '<div class="stat"><b>' + P.st.titles + '</b><span>타이틀</span></div>' +
+    '<div class="stat"><b>★' + avg + '</b><span>평균 평점</span></div>' +
+    '<div class="stat"><b>★' + P.st.best + '</b><span>최고 평점</span></div>' +
+    '<div class="stat"><b>' + Math.round(P.st.peak) + '</b><span>최고 인지도</span></div>' +
+    '<div class="stat"><b>' + Math.ceil(S.week / 52) + '년</b><span>활동 기간</span></div>' +
+    '</div></div>' +
+    '<button class="btn pri" onclick="wipe();mode=\'create\';CR=null;render()">새 커리어 시작</button>' +
+    '<div style="height:24px"></div></div>';
+  repaintAll($('#mn'));
+}
+
+/* ---------- 부팅 ---------- */
+document.addEventListener('DOMContentLoaded', () => { mode = 'title'; render(); });
+if (document.readyState !== 'loading') { mode = 'title'; render(); }
+</script>
+</body>
+</html>
