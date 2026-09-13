@@ -61,6 +61,8 @@ header{position:sticky;top:0;z-index:20;background:#120f1c;border-bottom:2px sol
 .hstat{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px;font-size:10px}
 .hstat div{background:var(--panel);border:1px solid var(--line);padding:3px 4px;text-align:center}
 .hstat span{display:block;color:var(--dim);font-size:9px}
+.tipbtn{width:34px;height:30px;border:2px solid var(--line);background:var(--panel);font-size:14px;line-height:1;box-shadow:2px 2px 0 #000}
+.tipbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 #000}
 
 /* ===== 본문/탭 ===== */
 main{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px;padding-bottom:80px;-webkit-overflow-scrolling:touch}
@@ -110,6 +112,12 @@ nav:empty,header:empty{display:none}
 .mlog{height:150px;overflow-y:auto;background:#0a0810;border:2px solid var(--line);padding:8px;font-size:11px}
 .mlog p{margin-bottom:4px}
 .mlog .hit{color:var(--ink)} .mlog .big{color:var(--gold)} .mlog .sys{color:var(--dim)}
+.mlog .near{color:#ffe487;font-weight:bold} .mlog .counter{color:var(--cyan)}
+.mlog .crowd{color:var(--pink)} .mlog .brawl{color:#ffa45c}
+.mlog .runin{color:var(--red);font-weight:bold}
+@keyframes shk{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,0)}}
+.ring.shake{animation:shk .3s steps(2)}
+.ring.flash{animation:shk .3s steps(2);box-shadow:inset 0 0 0 999px rgba(255,91,91,.22)}
 .hpwrap{display:flex;gap:6px;margin-bottom:6px;font-size:10px}
 .hpwrap>div{flex:1}
 .stars{font-size:16px;color:var(--gold);letter-spacing:2px}
@@ -401,25 +409,80 @@ const ACTS = [
   { k: 'back',   n: '백스테이지',  d: '부커 신뢰 + · 컨디션 -3' },
   { k: 'media',  n: '외부 활동',   d: '자금 + · 인지도 소폭 +' }
 ];
+/* ---------- 주간 상황 서술 ---------- */
+const FLAVOR = {
+  train: ['새벽 5시. 아무도 없는 도장에서 200번째 수플렉스를 받아냈다.',
+    '코치가 스톱워치를 들고 서 있다. "한 세트 더."',
+    '거울 앞에서 같은 동작을 백 번 반복했다. 각도가 1도씩 맞아 들어간다.',
+    '스파링 파트너가 두 번 바뀌는 동안 당신은 링에 남아 있었다.',
+    '테이핑을 세 번 다시 감았다. 손가락이 말을 듣지 않는다.'],
+  rest: ['하루 종일 아무것도 하지 않았다. 천장 얼룩의 개수를 셌다.',
+    '얼음물에 다리를 담근 채 20분. 감각이 천천히 돌아온다.',
+    '물리치료사가 등을 눌렀다. 뼈 소리가 방을 가득 채웠다.',
+    '열두 시간을 잤다. 깨어나서도 한참 천장만 봤다.'],
+  promo: ['카메라 앞에 섰다. 세 테이크 만에 작가가 엄지를 들었다.',
+    '"거기서 한 박자 쉬고 들어가." 디렉터의 주문대로 하자 소름이 돋았다.',
+    '대본을 덮고 당신의 말로 뱉었다. 스태프들이 조용해졌다.',
+    '조명이 뜨겁다. 그래도 눈을 깜빡이지 않았다.'],
+  back: ['부커의 방 앞 복도. 커피 두 잔을 들고 문을 두드렸다.',
+    '선배가 먼저 말을 걸었다. "링 안에서 눈을 너무 빨리 뜨더라."',
+    '회식 자리 끝까지 남았다. 남는 사람이 기억된다.',
+    '제작 회의를 문 밖에서 들었다. 당신 이름이 두 번 나왔다.'],
+  media: ['지역 스포츠 채널 인터뷰. 질문의 절반은 경기와 무관했다.',
+    '쇼핑몰 사인회. 줄은 짧았지만 끝까지 웃었다.',
+    '광고 촬영장에서 여덟 시간을 대기하고 30초를 찍었다.',
+    '잡지 인터뷰어가 당신의 데뷔전을 기억하고 있었다.']
+};
+const FLAVOR_LOW = {
+  train: '몸이 무겁다. 코치가 링 밖을 가리켰다. "오늘은 여기까지."',
+  rest: '재활실의 형광등은 늘 조금 깜빡인다. 오늘도 같은 각도로 다리를 들어올렸다.',
+  promo: '방송 분량은 40초였다. 그 40초를 위해 세 시간을 기다렸다.',
+  back: '아무도 당신을 부르지 않았다. 그래서 먼저 가서 앉았다.',
+  media: '행사장 절반이 비어 있었다. 그래도 끝까지 진행했다.'
+};
+function flavorLine(k) {
+  const low = (k === 'train' && P.cond < 35) || (k === 'rest' && P.injury > 0) ||
+              ((k === 'promo' || k === 'media') && P.pop < 20) || (k === 'back' && S.trust < 30);
+  return '<span class="dim">' + esc(low ? FLAVOR_LOW[k] : pick(FLAVOR[k])) + '</span>';
+}
+/* 이번 주의 전후 사정 */
+function situation() {
+  const out = [];
+  const toPPV = (PPV_EVERY - ((S.week - 1) % PPV_EVERY) - 1);
+  if (isPPV(S.week)) out.push('<b class="gold">PPV 〈' + ppvName(S.week) + '〉 당일. 아레나 밖까지 줄이 늘어섰다.</b>');
+  else if (toPPV <= 2) out.push('<span class="gold">PPV까지 ' + (toPPV + 1) + '주. 백스테이지 공기가 달라졌다.</span>');
+  if (P.injury > 0) out.push('<span class="rd">' + esc(P.injName) + '. 링 대신 재활실로 향한다. (잔여 ' + P.injury + '주)</span>');
+  if (S.feud) {
+    const o = findW(S.feud.oppId);
+    if (o) out.push('<span class="pk">' + esc(o.name) + '의 도발 영상이 공개됐다. 스태프들이 당신 눈치를 본다.</span>');
+  }
+  if (P.contract <= 6) out.push('<span class="cy">계약 만료까지 ' + P.contract + '주. 에이전트의 전화가 잦아졌다.</span>');
+  if (P.cond < 30) out.push('<span class="rd">몸이 한계다. 계단을 오르는 것도 버겁다.</span>');
+  else if (S.trust > 78 && pushLv(P) >= 4) out.push('<span class="gr">부커가 당신을 중심으로 각본을 짜기 시작했다.</span>');
+  return out;
+}
 function doActivity() {
   const a = S.act || { k: 'rest' };
   if (P.injury > 0 && a.k !== 'rest') {
-    return ['<span class="rd">부상 중에는 재활만 가능합니다.</span>', ...doRest(true)];
+    return [flavorLine('rest'), '<span class="rd">부상 중에는 재활만 가능합니다.</span>', ...doRest(true)];
   }
-  if (a.k === 'train') return trainWeek(a.attr);
-  if (a.k === 'rest') return doRest(false);
+  if (a.k === 'train') return [flavorLine('train'), ...trainWeek(a.attr)];
+  if (a.k === 'rest') return [flavorLine('rest'), ...doRest(false)];
   if (a.k === 'promo') {
+    const fl = flavorLine('promo');
     const gain = 1 + attrAvg({ attr: P.attr }) * 0 + P.attr.cha * .12 + rnd(0, 1);
     P.pop = cl(P.pop + gain, 0, 100); P.cond = cl(P.cond - 5, 0, 100);
-    return ['<span class="dim">프로모 영상 촬영. 인지도 +' + r1(gain) + '</span>', ...gainXp('cha', 1.5)];
+    return [fl, '프로모 영상 촬영. 인지도 +' + r1(gain), ...gainXp('cha', 1.5)];
   }
   if (a.k === 'back') {
+    const fl = flavorLine('back');
     const t = ri(3, 7); S.trust = cl(S.trust + t, 0, 100); P.cond = cl(P.cond - 3, 0, 100);
-    return ['<span class="dim">백스테이지에서 부커·선배들과 관계를 다졌습니다. 신뢰 +' + t + '</span>'];
+    return [fl, '부커·선배들과 관계를 다졌습니다. 부커 신뢰 +' + t];
   }
+  const fl = flavorLine('media');
   const m = Math.round(40 + P.pop * 4);
   S.money += m; P.pop = cl(P.pop + .6, 0, 100); P.cond = cl(P.cond - 4, 0, 100);
-  return ['<span class="dim">광고·행사 출연. 자금 +$' + m + '</span>'];
+  return [fl, '광고·행사 출연. 자금 +$' + m];
 }
 function doRest(auto) {
   const heal = ri(26, 38);
@@ -442,46 +505,139 @@ function perf(w) {
   const a = w.attr;
   return (a.tech * 1.4 + a.sell * 1.6 + a.aerial * .8 + a.power * .7 + a.cha * 1.1) / 5.6;
 }
+/* ---------- 경기 연출 텍스트 ---------- */
+const GRAP = ['락업에서 힘겨루기', '헤드락으로 조인다', '암 드래그로 매트에 눕힌다', '와키가타메로 팔을 꺾는다',
+  '숄더 태클로 밀어붙인다', '드롭 토 홀드로 균형을 무너뜨린다', '리스트 락으로 관절을 비튼다'];
+const CROWD = ['관중석에서 "이 경기다!" 챈트가 터진다.', '"한 판 더!" 함성이 아레나를 흔든다.',
+  '양쪽 응원이 정면으로 부딪힌다. 아레나가 두 쪽으로 갈렸다.', '기립한 관중이 카메라 플래시를 터뜨린다.',
+  '해설석: "이건… 오늘 밤 최고의 경기가 될지도 모릅니다."'];
+const TAUNT = ['{W} 관중을 향해 손가락을 치켜든다.', '{W} 상대를 도발하며 코너에 기대선다.',
+  '{W} 쓰러진 상대 위에 발을 올리고 포즈를 잡는다.'];
+
+/* 받침 유무로 조사 선택: J('스톰','이','가') -> '스톰이' */
+function J(w, a, b) {
+  const c = String(w).charCodeAt(String(w).length - 1);
+  const jong = (c >= 0xAC00 && c <= 0xD7A3) ? ((c - 0xAC00) % 28) !== 0 : false;
+  return w + (jong ? a : b);
+}
+function mv(w) { return pick(MOVES[w.style].concat(MOVES.all)); }
+function fill(t, a, b) { return t.replace(/\{W\}/g, J(a.name, '이', '가')).replace(/\{L\}/g, b ? b.name : ''); }
+
+/* 경기 전개 생성: 페이즈 구조 + 하이라이트 모먼트 + 난입 */
+function buildMatch(opp, ctx, win, hiRate) {
+  const log = [], hi = { near: 0, counter: 0, dive: 0, brawl: 0 };
+  let runin = null, mo = 0;
+  const A = P, B = opp;
+  const act = () => { const me = Math.random() < .5 + mo * .06; mo = cl(mo + (me ? 1 : -1), -3, 3); return me; };
+
+  log.push({ t: 'sys', s: (ctx.ppv ? '메인 이벤트' : '위클리 메인') + ' — ' + A.name + ' vs ' + B.name });
+  log.push({ t: 'sys', s: '공이 울렸다!' });
+
+  /* 초반: 그래플링 탐색 */
+  for (let i = 0; i < ri(2, 3); i++) {
+    const me = act(), w = me ? A : B;
+    log.push({ t: 'hit', me: me, s: J(w.name, '이', '가') + ' ' + pick(GRAP) + '.' });
+  }
+  log.push({ t: 'crowd', s: '탐색전이 끝났다. 관중의 박수가 잦아든다.' });
+
+  /* 중반: 기술 공방 + 하이라이트 */
+  const mids = ri(4, 6);
+  for (let i = 0; i < mids; i++) {
+    const me = act(), w = me ? A : B, l = me ? B : A;
+    const roll = Math.random();
+    if (roll < hiRate * .42) {
+      hi.counter++;
+      log.push({ t: 'counter', me: !me, s: J(w.name, '이', '가') + ' ' + mv(w) + '를 노렸지만 — ' + J(l.name, '이', '가') + ' 받아넘긴다! 완벽한 카운터!' });
+      mo = cl(mo + (me ? -2 : 2), -3, 3);
+    } else if (roll < hiRate * .62) {
+      hi.dive++;
+      if (Math.random() < .68) log.push({ t: 'big', me: me, s: J(w.name, '이', '가') + ' 탑로프에 오른다… ' + mv(w) + ' 명중!! 아레나가 폭발한다!' });
+      else { log.push({ t: 'counter', me: !me, s: w.name + '의 하이 리스크 무브 — 빗나갔다! 매트에 그대로 꽂힌다!' }); mo = cl(mo + (me ? -2 : 2), -3, 3); }
+    } else if (roll < hiRate * .72) {
+      hi.brawl++;
+      log.push({ t: 'brawl', me: me, s: '난투가 링 밖으로 번졌다! ' + J(w.name, '이', '가') + ' ' + J(l.name, '을', '를') + ' 철제 계단에 내던진다. 카운트 시작!' });
+    } else {
+      const big = Math.random() < .25;
+      log.push({ t: big ? 'big' : 'hit', me: me, s: w.name + (big ? ' 회심의 ' : '의 ') + mv(w) + '!' + (big ? ' 매트가 울린다!' : '') });
+    }
+    if (i === 2) log.push({ t: 'crowd', s: pick(CROWD) });
+  }
+
+  /* 난입 */
+  const feudOpp = S.feud ? findW(S.feud.oppId) : null;
+  if (ctx.runin) {
+    runin = ctx.runin;
+    log.push({ t: 'runin', s: '★ 난입! ' + J(runin.who, '이', '가') + ' 링사이드로 뛰어들었다!' });
+    log.push({ t: 'runin', s: runin.text });
+  }
+
+  /* 후반: 니어폴 공방 */
+  const nears = ri(1, 2) + (hiRate > .5 ? 1 : 0);
+  for (let i = 0; i < nears; i++) {
+    const me = act(), w = me ? A : B, l = me ? B : A;
+    hi.near++;
+    log.push({ t: 'big', me: me, s: w.name + '의 ' + mv(w) + '! 커버!' });
+    log.push({ t: 'near', me: me, s: '1… 2… ' + (i === nears - 1 ? '2.9! ' : '') + l.name + ' 킥아웃!! 관중 전원 기립!' });
+  }
+  if (Math.random() < .5) log.push({ t: 'crowd', s: fill(pick(TAUNT), mo >= 0 ? A : B) });
+
+  /* 피니시 */
+  if (ctx.noContest) {
+    log.push({ t: 'runin', s: '링이 아수라장이 됐다. 심판이 경기를 중단시킨다.' });
+    log.push({ t: 'sys', s: '판정: 노 콘테스트 (무효 경기)' });
+  } else {
+    const winner = win ? A : B, loser = win ? B : A;
+    const fin = pick(FINISH[winner.style]);
+    if (Math.random() < .45) log.push({ t: 'counter', s: J(loser.name, '이', '가') + ' 피니셔를 시도 — ' + J(winner.name, '이', '가') + ' 빠져나온다!' });
+    log.push({ t: 'big', me: win, s: winner.name + ', 피니셔 ' + fin + '!!' });
+    log.push({ t: 'near', me: win, s: '1… 2… 3!!' });
+    log.push({ t: 'sys', s: '승자: ' + winner.name });
+  }
+  return { log: log, hi: hi, runin: runin };
+}
+
 function simMatch(opp, ctx) {
   /* 1) 부커가 승자를 정한다 (능력치가 아니라 푸시/스토리) */
   let pw = 1 / (1 + Math.exp(-(pushScore(P) - pushScore(opp)) / 15));
   if (ctx.title && !holds(ctx.title)) pw *= .75;
   if (ctx.job) pw = .03;
   if (S.feud && S.feud.oppId === opp.id && ctx.blowoff) pw = cl(pw + S.feud.heat / 260, .05, .95);
-  const win = Math.random() < pw;
 
-  /* 2) 경기 평점 */
+  /* 2) 난입 판정 */
+  const feudOpp = S.feud ? findW(S.feud.oppId) : null;
+  if (feudOpp && feudOpp.id !== opp.id && Math.random() < .16 + S.feud.heat * .0015) {
+    ctx.runin = { who: feudOpp.name, kind: 'attack', id: feudOpp.id,
+      text: J(feudOpp.name, '이', '가') + ' 심판의 등 뒤에서 ' + J(P.name, '을', '를') + ' 가격한다!' };
+    pw *= .25;
+  } else if (ctx.title && !holds(ctx.title) && Math.random() < .12) {
+    const ch = pick(brandPool(P.brand).filter(w => w.id !== opp.id)) || opp;
+    ctx.runin = { who: ch.name, kind: 'chaos', id: ch.id,
+      text: J(ch.name, '이', '가') + ' 벨트를 들고 링에 올라 양쪽을 노려본다!' };
+    ctx.noContest = Math.random() < .5;
+  }
+  const win = ctx.noContest ? false : Math.random() < pw;
+
+  /* 3) 하이라이트 발생률 — 양 선수 기량·컨디션·대립 열기가 좌우 */
+  const heat = (S.feud && S.feud.oppId === opp.id) ? S.feud.heat : 0;
+  const hiRate = cl((perf(P) + perf(opp)) / 40 * .62 + P.cond / 100 * .22 + (ctx.ppv ? .12 : 0) + heat * .002, .12, .85);
+
+  const built = buildMatch(opp, ctx, win, hiRate);
+  const hiCount = built.hi.near + built.hi.counter + built.hi.dive + built.hi.brawl;
+
+  /* 4) 경기 평점 — 하이라이트가 실제로 평점을 끌어올린다 */
   let q = perf(P) * .62 + perf(opp) * .38;
   q *= .55 + (P.cond / 100) * .45;
-  if (S.feud && S.feud.oppId === opp.id) q += S.feud.heat * .022;
+  q += heat * .022;
   if (ctx.ppv) q += 1.1;
   if (ctx.title) q += .8;
   q += P.pop * .012;
-  q += rnd(-1.3, 1.3);
+  q += hiCount * .34;
+  if (ctx.runin) q -= 1.1;                 // 난입은 경기를 흐린다
+  q += rnd(-1.1, 1.1);
   const stars = cl(Math.round(q / 3.8 * 2) / 2, .5, 5);
 
-  /* 3) 텍스트 로그 */
-  const log = [];
-  const mine = MOVES[P.style].concat(MOVES.all);
-  const theirs = MOVES[opp.style].concat(MOVES.all);
-  log.push({ t: 'sys', s: '공이 울립니다! ' + P.name + ' vs ' + opp.name });
-  const beats = ri(9, 13);
-  let mo = 0;
-  for (let i = 0; i < beats; i++) {
-    const meAct = Math.random() < .5 + mo * .05;
-    mo += meAct ? 1 : -1; mo = cl(mo, -3, 3);
-    const who = meAct ? P : opp;
-    const mv = pick(meAct ? mine : theirs);
-    const big = Math.random() < .22;
-    log.push({ t: big ? 'big' : 'hit', me: meAct,
-      s: who.name + ' ' + (big ? '회심의 ' : '') + mv + '!' + (big ? ' 관중석이 폭발합니다!' : '') });
-    if (i === Math.floor(beats / 2)) log.push({ t: 'sys', s: '관중 "이건 대박이야!" 연호' });
-  }
-  const winner = win ? P : opp;
-  const fin = pick(FINISH[winner.style]);
-  log.push({ t: 'big', me: win, s: winner.name + ' 피니셔 ' + fin + '!!' });
-  log.push({ t: 'sys', s: '1... 2... 3! 종료' });
-  return { win: win, stars: stars, log: log, opp: opp, ctx: ctx };
+  return { win: win, stars: stars, log: built.log, opp: opp, ctx: ctx,
+           hi: built.hi, hiCount: hiCount, runin: built.runin, noContest: !!ctx.noContest };
 }
 
 /* 경기 결과를 상태에 반영 */
@@ -492,7 +648,18 @@ function applyMatch(res) {
   if (res.stars > P.st.best) P.st.best = res.stars;
   if (ctx.ppv) P.st.ppv++;
   if (ctx.title) P.st.shots++;
-  if (res.win) { P.rec.w++; opp.rec.l++; } else { P.rec.l++; opp.rec.w++; }
+  if (res.noContest) lines.push('<span class="rd">난입으로 경기가 무효 처리되었습니다. 전적에 기록되지 않습니다.</span>');
+  else if (res.win) { P.rec.w++; opp.rec.l++; } else { P.rec.l++; opp.rec.w++; }
+  if (res.hiCount) lines.push('<span class="cy">하이라이트 ' + res.hiCount + '회 — 니어폴 ' + res.hi.near +
+    ' · 카운터 ' + res.hi.counter + ' · 하이리스크 ' + res.hi.dive + ' · 장외 ' + res.hi.brawl + '</span>');
+  if (res.runin) {
+    const rw = findW(res.runin.id);
+    if (rw && rw.ai) {
+      if (!S.feud || S.feud.oppId !== rw.id) { S.feud = { oppId: rw.id, heat: 35, weeks: 0 }; lines.push('<span class="pk">' + esc(J(rw.name, '과', '와')) + '의 대립이 시작되었습니다.</span>'); }
+      else { S.feud.heat = cl(S.feud.heat + ri(18, 28), 0, 100); lines.push('<span class="pk">난입으로 대립 열기가 치솟았습니다. (' + Math.round(S.feud.heat) + ')</span>'); }
+    }
+    news(res.runin.who + '의 난입으로 ' + P.name + '의 경기가 아수라장이 되었습니다.', true);
+  }
 
   const expPop = 1.8 + P.pop * .018;          // 인지도가 높을수록 팬의 기대치가 높다
   let dp = (res.stars - expPop) * 2.2 * (ctx.ppv ? 1.7 : 1) * (ctx.title ? 1.3 : 1);
@@ -519,7 +686,8 @@ function applyMatch(res) {
     news(P.name + ', ' + P.injName + '으로 ' + P.injury + '주 결장.', true);
   }
   /* 타이틀 이동 */
-  if (ctx.title && res.win && !holds(ctx.title)) {
+  if (res.noContest) { /* 무효: 타이틀 이동 없음 */ }
+  else if (ctx.title && res.win && !holds(ctx.title)) {
     S.titles[ctx.title] = P.id; P.st.titles++;
     P.st.reigns.push({ t: ctx.title, from: S.week });
     lines.push('<b class="gold">★ ' + TITLES[ctx.title].n + ' 등극! ★</b>');
@@ -532,7 +700,7 @@ function applyMatch(res) {
   }
   /* 라이벌전 종료 */
   if (S.feud && S.feud.oppId === opp.id && ctx.blowoff) {
-    lines.push('<span class="pk">' + opp.name + '와의 라이벌 구도가 마무리되었습니다.</span>');
+    lines.push('<span class="pk">' + J(opp.name, '과', '와') + '의 라이벌 구도가 마무리되었습니다.</span>');
     if (res.win) { P.pop = cl(P.pop + 3, 0, 100); lines.push('승리로 구도를 정리하며 인지도 +3'); }
     S.feud = null;
   }
@@ -559,8 +727,8 @@ function pickOpponent() {
 function advanceWeek() {
   if (S.retired) return;
   S.queue = [];
-  const rep = doActivity();
-  S.queue.push({ type: 'report', title: S.week + '주차 활동', lines: rep });
+  const rep = situation().concat(doActivity());
+  S.queue.push({ type: 'report', title: S.week + '주차', lines: rep });
 
   const ppv = isPPV(S.week);
   if (P.injury > 0) {
@@ -636,7 +804,7 @@ function aiTitleNews() {
   const ch2 = pick(pool);
   if (Math.random() < .22) {
     S.titles[tk] = ch2.id; ch2.pop = cl(ch2.pop + 6, 0, 98);
-    news(ch2.name + '이(가) ' + ch.name + '을(를) 꺾고 새 ' + TITLES[tk].n + '에 등극.', true);
+    news(J(ch2.name, '이', '가') + ' ' + J(ch.name, '을', '를') + ' 꺾고 새 ' + TITLES[tk].n + '에 등극.', true);
   } else {
     news(ch.name + ', ' + ch2.name + '의 도전을 막고 ' + TITLES[tk].n + ' 방어 성공.');
   }
@@ -682,12 +850,12 @@ function startFeud() {
   if (!list.length) return;
   const o = pick(list.slice(0, 6));
   S.feud = { oppId: o.id, heat: 20, weeks: 0 };
-  news(o.name + '와(과)의 대립 구도가 시작되었습니다.', true);
+  news(J(o.name, '과', '와') + '의 대립 구도가 시작되었습니다.', true);
 }
 const SEGMENTS = [
-  { t: '도발 프로모', d: '마이크를 잡고 정면으로 도발한다', heat: [8, 16], trust: [1, 4], cond: 4, cha: 1.2 },
-  { t: '기습 공격', d: '경기 중 난입해 기습한다', heat: [14, 24], trust: [-4, 3], cond: 9, risk: .08 },
-  { t: '무시 전략', d: '반응하지 않고 실력으로 보여준다', heat: [1, 5], trust: [2, 6], cond: 1 }
+  { t: '도발 프로모', d: '마이크를 잡고 정면으로 도발한다 · 열기 ++', heat: [8, 16], trust: [0, 2], cond: 4, cha: 1.2 },
+  { t: '기습 공격', d: '경기 중 난입해 기습한다 · 열기 +++ · 부상 위험', heat: [14, 24], trust: [-4, 1], cond: 9, risk: .08 },
+  { t: '무시 전략', d: '반응하지 않고 실력으로 보여준다 · 신뢰 +', heat: [1, 5], trust: [1, 4], cond: 1 }
 ];
 function rollEvent() {
   const list = EVENTS.filter(e => !e.cond || e.cond());
@@ -718,7 +886,7 @@ const EVENTS = [
     o: [{ t: '합류한다', d: '테크닉/셀링 XP ++ · 컨디션 -', f: () => { P.cond = cl(P.cond - 14, 0, 100); return gainXp('tech', 4).concat(gainXp('sell', 4), ['스트롱 스타일을 몸으로 배웠습니다.']); } },
         { t: '국내에 남는다', d: '인지도 +', f: () => { P.pop = cl(P.pop + 2, 0, 100); return ['국내 활동에 집중했습니다.']; } }] }
 ];
-function S_feudName() { return S.feud ? (findW(S.feud.oppId).name + '이(가) 주차장에서 기습해 왔습니다!') : '기습을 당했습니다!'; }
+function S_feudName() { return S.feud ? (J(findW(S.feud.oppId).name, '이', '가') + ' 주차장에서 기습해 왔습니다!') : '기습을 당했습니다!'; }
 
 /* ==========================================================
    저장 / 불러오기
@@ -821,7 +989,7 @@ function startMatch(accept) {
   MV.res = simMatch(MV.opp, c);
   MV.i = 0; MV.mom = 0;
   drawMatch();
-  MV.timer = setInterval(stepMatch, 620);
+  queueBeat();
 }
 function drawMatch() {
   const o = MV.opp;
@@ -837,15 +1005,26 @@ function drawMatch() {
     '<button class="btn sm" onclick="skipMatch()">빨리감기 ▶▶</button>' +
     '<button class="btn sm pri" id="mEnd" disabled>결과</button></div>');
 }
+const BEAT_MS = { near: 950, big: 760, runin: 820, crowd: 620, brawl: 780, counter: 720, sys: 560, hit: 540 };
+function queueBeat() {
+  if (!MV || MV.i >= MV.res.log.length) { finishPlay(); return; }
+  const t = MV.res.log[MV.i].t;
+  MV.timer = setTimeout(() => { stepMatch(); queueBeat(); }, BEAT_MS[t] || 560);
+}
 function stepMatch() {
   const L = MV.res.log;
-  if (MV.i >= L.length) { finishPlay(); return; }
+  if (MV.i >= L.length) { return; }
   const b = L[MV.i++];
   const box = $('#mlog');
   if (box) {
     const p = document.createElement('p');
     p.className = b.t; p.innerHTML = esc(b.s);
     box.appendChild(p); box.scrollTop = box.scrollHeight;
+  }
+  const ring = document.querySelector('.ring');
+  if (ring && (b.t === 'near' || b.t === 'big' || b.t === 'runin')) {
+    ring.classList.add(b.t === 'runin' ? 'flash' : 'shake');
+    setTimeout(() => ring.classList.remove('shake', 'flash'), 320);
   }
   if (b.me !== undefined) {
     MV.mom = cl(MV.mom + (b.me ? 1 : -1) * (b.t === 'big' ? 2 : 1), -6, 6);
@@ -858,12 +1037,12 @@ function stepMatch() {
   }
 }
 function skipMatch() {
-  clearInterval(MV.timer);
+  clearTimeout(MV.timer);
   while (MV.i < MV.res.log.length) stepMatch();
   finishPlay();
 }
 function finishPlay() {
-  clearInterval(MV.timer); MV.timer = null;
+  clearTimeout(MV.timer); MV.timer = null;
   const b = $('#mEnd');
   if (b) { b.disabled = false; b.onclick = matchResult; }
   else matchResult();
@@ -876,10 +1055,11 @@ function starStr(s) {
 function matchResult() {
   const res = MV.res;
   const lines = applyMatch(res);
-  news(P.name + (res.win ? ' 승리' : ' 패배') + ' vs ' + res.opp.name + ' (★' + res.stars + ')', res.ctx.ppv);
+  news(P.name + (res.noContest ? ' 무효경기' : res.win ? ' 승리' : ' 패배') + ' vs ' + res.opp.name + ' (★' + res.stars + ')', res.ctx.ppv);
   openModal('<div class="mtitle">경기 결과</div>' +
     '<div class="pnl alt center">' +
-    '<div style="font-size:20px" class="' + (res.win ? 'gr' : 'rd') + '">' + (res.win ? 'WIN' : 'LOSE') + '</div>' +
+    '<div style="font-size:20px" class="' + (res.noContest ? 'gold' : res.win ? 'gr' : 'rd') + '">' +
+    (res.noContest ? 'NO CONTEST' : res.win ? 'WIN' : 'LOSE') + '</div>' +
     '<div class="stars">' + starStr(res.stars) + '</div>' +
     '<div class="tiny dim">경기 평점 ' + res.stars.toFixed(1) + ' / 5.0</div></div>' +
     '<div class="pnl mini">' + lines.map(l => '<p style="margin-bottom:4px">' + l + '</p>').join('') + '</div>' +
@@ -931,7 +1111,8 @@ function renderHeader() {
   const nx = isPPV(S.week) ? '<span class="gold">PPV</span>' : '위클리';
   $('#hd').innerHTML =
     '<div class="hbar"><div class="hname pk">' + esc(P.name) + '</div>' +
-    '<div class="tiny dim">' + Math.ceil(S.week / 52) + '년차 ' + S.week + '주 · ' + nx + '</div></div>' +
+    '<div class="row" style="gap:6px"><div class="tiny dim">' + Math.ceil(S.week / 52) + '년차 ' + S.week + '주 · ' + nx + '</div>' +
+    '<button class="tipbtn" onclick="showTips()">💡</button></div></div>' +
     '<div class="hstat">' +
     '<div><span>컨디션</span>' + Math.round(P.cond) + '</div>' +
     '<div><span>인지도</span>' + Math.round(P.pop) + '</div>' +
@@ -1112,6 +1293,36 @@ function vSys() {
     '</div></div>' +
     '<div class="pnl mini dim">매주 자동 저장됩니다.<br>승패는 부커의 푸시 판단으로 결정되고, 능력치와 컨디션은 <b class="gold">경기 평점(★)</b>을 좌우합니다. 평점이 높아야 인지도와 신뢰가 오르고, 그래야 푸시를 받습니다.</div>' +
     '<div class="pnl center tiny dim">RING QUEEN v1.0</div>';
+}
+/* 현재 상태를 읽고 우선순위가 높은 조언부터 보여준다 */
+function tips() {
+  const t = [], toPPV = PPV_EVERY - ((S.week - 1) % PPV_EVERY) - 1;
+  const capped = ATTRS.filter(a => P.attr[a.k] >= P.pot[a.k]).length;
+  if (P.injury > 0) t.push([100, '부상 중에는 재활만 가능합니다. 훈련 탭의 <b>집중 치료($250)</b>로 2주를 단축할 수 있습니다.']);
+  if (P.cond < 40) t.push([95, '컨디션 ' + Math.round(P.cond) + '. 컨디션은 경기 평점을 직접 깎습니다 — <b>휴식 한 주가 ★0.5 이상</b>을 바꿉니다.']);
+  if (S.trust < 35) t.push([85, '부커 신뢰 ' + Math.round(S.trust) + '. 신뢰가 낮으면 푸시 등급이 내려가 <b>출전 기회 자체가 줄어듭니다</b>. 백스테이지 활동으로 회복하세요.']);
+  if (P.pop < 25) t.push([80, '초반 인지도는 경기만으로 잘 오르지 않습니다. <b>프로모 촬영</b>이 가장 빠릅니다.']);
+  if (capped) t.push([75, capped + '개 능력치가 잠재치에 도달했습니다. 훈련 탭의 <b>잠재력 개발 캠프</b>로 상한을 올리세요.']);
+  if (S.gymWeeks === 0 && S.money >= 400) t.push([70, '자금 $' + S.money + '. <b>전담 트레이너(4주, $400)</b>를 붙이면 훈련 효율이 75% 오릅니다.']);
+  if (titleShotOK()) t.push([90, '<b class="gold">타이틀 도전 자격 충족</b>. ' + (toPPV === 0 ? '오늘이 PPV입니다.' : toPPV + '주 뒤 PPV에서 타이틀 매치가 잡힙니다.') + ' 컨디션을 아껴두세요.']);
+  else if (rankOf(P) > 2) t.push([50, '타이틀전은 <b>랭킹 2위 이내</b>부터입니다. 현재 ' + rankOf(P) + '위 — 순위는 인지도·푸시·승수로 정해집니다.']);
+  if (S.feud) t.push([65, '대립 중입니다. <b>세그먼트로 열기</b>를 올리면 경기 평점과 최종전 승률이 함께 오릅니다.']);
+  if (P.contract <= 8) t.push([60, '계약 만료 ' + P.contract + '주 전. <b>인지도 18 미만 + 신뢰 25 미만</b>이면 NEXT로 강등됩니다.']);
+  if (P.age >= 31) t.push([55, P.age + '세. 매년 파워·공중·체력이 하락할 수 있습니다. <b>테크닉·카리스마·셀링</b> 중심으로 전환하세요.']);
+  if (P.brand === 'next' && P.pop >= 45) t.push([58, '인지도 <b>58</b>을 넘기면 메인로스터로 승격됩니다. 현재 ' + Math.round(P.pop) + '.']);
+  if (isPPV(S.week)) t.push([88, '<b class="gold">오늘은 PPV</b>입니다. 평점 보정이 크게 붙으니 컨디션이 낮다면 이번 주는 휴식이 손해가 아닙니다.']);
+  return t.sort((a, b) => b[0] - a[0]).slice(0, 4).map(x => x[1]);
+}
+function showTips() {
+  const t = tips();
+  openModal('<div class="mtitle">💡 진행 팁</div>' +
+    '<div class="pnl alt mini">' + (t.length ? t.map(x => '<p style="margin-bottom:7px">· ' + x + '</p>').join('')
+      : '<p>지금은 특별히 손볼 곳이 없습니다. 훈련과 출전을 이어가세요.</p>') + '</div>' +
+    '<div class="pnl mini"><div class="ttl">기본 원리</div>' +
+    '<p style="margin-bottom:6px">· 승패는 능력치가 아니라 <b class="pk">부커의 푸시</b>가 정합니다. 당신이 통제하는 건 <b class="gold">경기 평점(★)</b>입니다.</p>' +
+    '<p style="margin-bottom:6px">· 평점이 <b>기대치</b>를 넘어야 인지도·신뢰가 오릅니다. 기대치는 인지도와 푸시가 높을수록 같이 올라갑니다.</p>' +
+    '<p>· 경기 중 <b class="cy">하이라이트</b>(니어폴·카운터·하이리스크)가 많을수록 평점이 오릅니다. 능력치와 컨디션이 발생률을 결정합니다.</p></div>' +
+    '<button class="btn pri" onclick="closeModal()">닫기</button>');
 }
 function toast(m) { openModal('<div class="pnl alt mini center">' + esc(m) + '</div><button class="btn pri" onclick="closeModal()">확인</button>'); }
 function confirmNew() {
