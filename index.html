@@ -96,11 +96,11 @@ nav:empty,header:empty{display:none}
 .mtitle{font-size:13px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;text-align:center}
 
 /* ===== 경기 화면 ===== */
-.ring{position:relative;height:132px;background:linear-gradient(#2a1f3d,#191230);
+.ring{position:relative;height:176px;background:linear-gradient(#2a1f3d,#191230);
   border:2px solid var(--line);overflow:hidden;margin-bottom:8px}
 .ropes{position:absolute;left:0;right:0;height:2px;background:var(--pink);opacity:.55}
-.mat{position:absolute;left:0;right:0;bottom:0;height:42px;background:#3a2b55;border-top:2px solid #56407e}
-.fighters{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:14px;padding-bottom:14px}
+.mat{position:absolute;left:0;right:0;bottom:0;height:52px;background:#3a2b55;border-top:2px solid #56407e}
+.fighters{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding-bottom:10px}
 .fighters canvas{transition:transform .18s steps(2)}
 .lunge-l{transform:translateX(10px)} .lunge-r{transform:translateX(-10px)}
 .mlog{height:150px;overflow-y:auto;background:#0a0810;border:2px solid var(--line);padding:8px;font-size:11px}
@@ -161,71 +161,184 @@ const cl = (v, a, b) => Math.max(a, Math.min(b, v));
 const r1 = v => Math.round(v * 10) / 10;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- 도트 스프라이트 ---------- */
-const BODY_LONG = [
-'......HHHH......','....HHHHHHHH....','...HHHHHHHHHH...','..HHHSSSSSSHHH..',
-'..HHHSSSSSSHHH..','..HHHSESSESHHH..','..HHHSSSSSSHHH..','..HHHSSMMSSHHH..',
-'..HHHHSSSSHHHH..','..HHHH.SS.HHHH..','..HHOOOOOOOOHH..','.HSOOOOOOOOOOSH.',
-'..SOOOWWWWOOOS..','..SOOOWWWWOOOS..','..SSOOOOOOOOSS..','...SOOOOOOOOS...',
-'....OOOOOOOO....','....OOOOOOOO....','....SSS..SSS....','....SSS..SSS....',
-'....SSS..SSS....','....BBB..BBB....','...BBBB..BBBB...','................'];
-const BODY_SHORT = BODY_LONG.slice();
-BODY_SHORT[9]  = '.......SS.......';
-BODY_SHORT[10] = '...OOOOOOOOOO...';
-BODY_SHORT[11] = '..SOOOOOOOOOOS..';
-const BODY_TWIN = BODY_LONG.slice();
-BODY_TWIN[9]  = '.HH...SS...HH...';
-BODY_TWIN[10] = '.HHOOOOOOOOOOHH.';
-const BODY_MOHAWK = BODY_SHORT.slice();
-BODY_MOHAWK[0] = '.......HH.......';
-BODY_MOHAWK[1] = '......HHHH......';
-BODY_MOHAWK[2] = '.....HHHHHH.....';
-BODY_MOHAWK[3] = '...SSSSHHSSSS...';
-BODY_MOHAWK[4] = '...SSSSSSSSSS...';
-BODY_MOHAWK[5] = '...SSESSSSESS...';
-BODY_MOHAWK[6] = '...SSSSSSSSSS...';
-BODY_MOHAWK[7] = '....SSSMMSSS....';
-BODY_MOHAWK[8] = '....SSSSSSSS....';
+/* ---------- 도트 스프라이트 (24x32 레이어 합성) ----------
+   문자: S 피부 / s 피부음영 / E 눈 / M 입 / H 머리 / h 머리음영
+        O 코스튬 / o 코스튬음영 / W 포인트 / w 포인트음영 / B 부츠 / b 부츠음영 */
+const SW = 24, SH = 32;
+const E_ = '........................';
+function L(map) { const a = []; for (let y = 0; y < SH; y++) a.push(map[y] || E_); return a; }
 
-const HAIR_SETS = [BODY_LONG, BODY_SHORT, BODY_TWIN, BODY_MOHAWK];
-const HAIR_NAMES = ['롱', '숏', '트윈테일', '모히칸'];
-const SKINS   = ['#f4ccA4', '#e0a877', '#c08050', '#8f5a37', '#fae0c8'];
+const BASE = L([
+  '........SSSSSSSS........', '.......SSSSSSSSSS.......', '.......SSSSSSSSSS.......',
+  '.......SSSSSSSSSS.......', '.......SSEESSEESS.......', '.......SSSSSSSSSS.......',
+  '.......SSSSMMSSSS.......', '.......sSSSSSSSSs.......', '........SSSSSSSS........',
+  '..........SSSS..........', '.......SSSSSSSSSS.......', '......SsSSSSSSSSss......',
+  '......SsSSSSSSSSss......', '......SsSSSSSSSSss......', '......SsSSSSSSSSss......',
+  '......SsSSSSSSSSss......', '......SsSSSSSSSSss......', '......SsSSSSSSSSss......',
+  '......SsSSSSSSSSss......', '.......SSSSSSSSSs.......', '.......SSSSSSSSSs.......',
+  '.......SSSSSSSSSs.......', '.......SSSS..SSSs.......', '.......SSSS..SSSs.......',
+  '........SSs..SSs........', '........SSs..SSs........', '........SSs..SSs........',
+  '........SSs..SSs........', '........SSs..SSs........', '........SSs..SSs........',
+  '........SSs..SSs........', '.......SSSS..SSSS.......']);
+
+const HAIR_ART = [
+  /* 0 롱 */ L(['........HHHHHHHH........', '......HHHHHHHHHHHH......', '.....HHHHHHHHHHHHHH.....',
+    '.....HHH........HHH.....', '.....HHH........HHH.....', '.....HHH........HHH.....',
+    '.....HHH........HHH.....', '.....HHH........HHH.....', '.....HHHH......HHHH.....',
+    '.....HHHh......hHHH.....', '.....HHH........HHH.....', '.....HHh........hHH.....',
+    '.....HH..........HH.....', '......h..........h......']),
+  /* 1 숏 */ L(['........HHHHHHHH........', '......HHHHHHHHHHHH......', '.....HHHHHHHHHHHHHH.....',
+    '.....HHH........HHH.....', '.....HHH........HHH.....', '.....HHH........HHH.....',
+    '.....HHh........hHH.....', '......HH........HH......', '.......h........h.......']),
+  /* 2 포니테일 */ L(['........HHHHHHHH........', '......HHHHHHHHHHHH......', '.....HHHHHHHHHHHHHH.....',
+    '.....HHH........HHHH....', '.....HHH........HHHHH...', '.....HHH........HHHHH...',
+    '.....HHh........HHHHH...', '......HH........hHHHH...', '.......h.........HHHH...',
+    '..................HHH...', '..................HHh...', '...................HH...']),
+  /* 3 트윈테일 */ L(['........HHHHHHHH........', '......HHHHHHHHHHHH......', '....HHHHHHHHHHHHHHHH....',
+    '...HHHHH........HHHHH...', '...HHHHH........HHHHH...', '...HHHH..........HHHH...',
+    '...hHHH..........HHHh...', '....HHH..........HHH....', '.....HH..........HH.....',
+    '.....hH..........Hh.....']),
+  /* 4 모히칸 */ L(['..........HHHH..........', '.........HHHHHH.........', '.........HHHHHH.........',
+    '..........HHHH..........', '..........hHHh..........']),
+  /* 5 웨이브 */ L(['.......HHHHHHHHHH.......', '.....HHHHHHHHHHHHHH.....', '....HHHHHHHHHHHHHHHH....',
+    '....HHHH........HHHH....', '....HHHH........HHHH....', '....HHHH........HHHH....',
+    '....HHHH........HHHH....', '....HHHHH......HHHHH....', '....HHHHH......HHHHH....',
+    '....hHHHH......HHHHh....', '.....HHHH......HHHH.....', '.....HHH........HHH.....',
+    '.....HHh........hHH.....', '......HH........HH......', '.......h........h.......']),
+  /* 6 트윈 브레이드 */ L(['........HHHHHHHH........', '......HHHHHHHHHHHH......', '.....HHHHHHHHHHHHHH.....',
+    '.....HHH........HHH.....', '.....HHH........HHH.....', '.....HHH........HHH.....',
+    '....HHHH........HHHH....', '....HHH..........HHH....', '....HHh..........hHH....',
+    '....HHH..........HHH....', '....hHH..........HHh....', '....HHH..........HHH....',
+    '....HHh..........hHH....', '....HHH..........HHH....', '.....HH..........HH.....',
+    '.....hH..........Hh.....']),
+  /* 7 사이드 롱 */ L(['.......HHHHHHHHH........', '.....HHHHHHHHHHHHH......', '.....HHHHHHHHHHHHHH.....',
+    '.....HHHH.......HHH.....', '.....HHH........HHH.....', '.....HHH........HHH.....',
+    '.....HHH........HHH.....', '.....HHH........HHH.....', '.....HHH.......HHHH.....',
+    '.....hHH.......HHHH.....', '......HH.......HHHH.....', '......HH.......HHHH.....',
+    '......h........HHHH.....', '...............HHHH.....', '...............HHh......',
+    '................HH......'])];
+const HAIR_NAMES = ['롱', '숏', '포니테일', '트윈테일', '모히칸', '웨이브', '브레이드', '사이드'];
+
+const FITS = [
+  /* 0 원피스 레오타드 */ L([,,,,,,,,,,
+    '........OOOOOOOO........', '........OOOOOOOO........', '........OOWWWWOO........',
+    '........OOWWWWOO........', '........OOOOOOOo........', '........OOOOOOOo........',
+    '........OOOOOOOo........', '.........OOOOOo.........', '.........OOOOOo.........',
+    '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......', '.......OOO....OOo.......']),
+  /* 1 투피스 */ L([,,,,,,,,,,
+    '........OOOOOOOO........', '........OOWWWWOO........', '........OOOOOOOo........',
+    '.........OOOOOo.........', , , , ,
+    '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......',
+    '.......OOO....OOo.......']),
+  /* 2 재킷 + 롱타이츠 */ L([,,,,,,,,,,
+    '......OOOOOOOOOOOo......', '......OOOOOOOOOOOo......', '......OOOWWWWWWOOo......',
+    '......OOOWWWWWWOOo......', '......OOOWWWWWWOOo......', '......OOOOOOOOOOOo......',
+    '......OOOOOOOOOOOo......', '.......WWWWWWWWWw.......', '.......OOOOOOOOOo.......',
+    '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......', '.......OOO....OOo.......',
+    '.......OOOO..OOOo.......', '.......OOOO..OOOo.......', '........OOo..OOo........',
+    '........OOo..OOo........', '........OOo..OOo........']),
+  /* 3 스포츠브라 + 쇼츠 */ L([,,,,,,,,,,,
+    '........OOOOOOOO........', '........OOOOOOOo........', '.........OOOOOo.........', , , , ,
+    '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......',
+    '.......OOOO..OOOo.......', '.......WWWW..WWWW.......']),
+  /* 4 탱크탑 + 레깅스 */ L([,,,,,,,,,,
+    '........OOOOOOOO........', '........OOOOOOOO........', '........OOOOOOOo........',
+    '........OOOOOOOo........', '........OOOOOOOo........', '........OOOOOOOo........',
+    '.........OOOOOo.........', ,
+    '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......', '.......OOOOOOOOOo.......',
+    '.......OOOOOOOOOo.......', '.......OOOO..OOOo.......', '.......OOOO..OOOo.......',
+    '........OOo..OOo........', '........OOo..OOo........', '........OOo..OOo........',
+    '........OOo..OOo........', '........OOo..OOo........'])];
+const FIT_NAMES = ['레오타드', '투피스', '재킷', '스포츠브라', '탱크탑'];
+
+/* 액세서리: 머리 / 팔 / 장비 */
+const HEADS = [
+  L([]),
+  /* 베레모 */ L(['......WWWWWWWWWW........', '.....WWWWWWWWWWWW.......', '.....wwWWWWWWWWww.......']),
+  /* 헤어밴드 */ L([, , '.....WWWWWWWWWWWWWW.....'])];
+const HEAD_NAMES = ['없음', '베레모', '헤어밴드'];
+const ARMS = [
+  L([]),
+  /* 핸드랩 */ L([,,,,,,,,,,,,,,,, '......WW........WW......', '......WW........WW......', '......Ww........wW......']),
+  /* 롱글러브 */ L([,,,,,,,,,,,,
+    '......WW........WW......', '......WW........WW......', '......WW........WW......',
+    '......WW........WW......', '......WW........WW......', '......Ww........wW......'])];
+const ARM_NAMES = ['맨손', '핸드랩', '롱글러브'];
+const GEARS = [
+  L([]),
+  /* 하네스 + 벨트 */ L([,,,,,,,,,,
+    '.........G....G.........', '.........G....G.........', '..........G..G..........',
+    '..........GGGG..........', '..........G..G..........', '..........G..G..........',
+    '..........G..G..........', '........GGGGGGGG........']),
+  /* 레그 홀스터 */ L([,,,,,,,,,,,,,,,,,,,,,,,,
+    '.............GGG........', '.............GGG........', '..............Gg........'])];
+const GEAR_NAMES = ['없음', '하네스', '홀스터'];
+
+const BT_S = '........BBb..BBb........', BT_W = '.......BBBB..BBBB.......';
+const BOOTS = [
+  /* 0 숏 */ L([,,,,,,,,,,,,,,,,,,,,,,,,,,,,, BT_S, BT_S, BT_W]),
+  /* 1 롱 */ L([,,,,,,,,,,,,,,,,,,,,,,,,, BT_S, BT_S, BT_S, BT_S, BT_S, BT_S, BT_W]),
+  /* 2 니하이 */ L([,,,,,,,,,,,,,,,,,,,,,, BT_W, BT_W, BT_S, BT_S, BT_S, BT_S, BT_S, BT_S, BT_S, BT_W])];
+const BOOT_NAMES = ['숏', '롱', '니하이'];
+
+const SKINS   = ['#f6cfa6', '#e3aa78', '#c07f4e', '#8e5734', '#fbe2c9'];
 const HAIRCOL = ['#2b1f30', '#7b3f2a', '#e0c476', '#ff5fa2', '#5ec8ff', '#9a5cff', '#eceaf5', '#3fbf6a'];
 const OUTFITS = ['#ff4d8d', '#4de1ff', '#ffc844', '#7a5cff', '#5ce07a', '#ff6b3d', '#eceaf5', '#39304f'];
+const BOOTCOL = ['#2a2238', '#e8e8f0', '#8f1f3a'];
 
+function dk(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round((n >> 16) * f), g = Math.round((n >> 8 & 255) * f), b = Math.round((n & 255) * f);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+function compose(look) {
+  const grid = BASE.map(r => r.split(''));
+  [FITS[(look.fit || 0) % FITS.length], BOOTS[(look.boot || 0) % BOOTS.length],
+   GEARS[(look.gear || 0) % GEARS.length], ARMS[(look.arm || 0) % ARMS.length],
+   HAIR_ART[look.hair % HAIR_ART.length], HEADS[(look.head || 0) % HEADS.length]].forEach(layer => {
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+      const c = layer[y][x]; if (c !== '.') grid[y][x] = c;
+    }
+  });
+  return grid;
+}
 function paint(cv, look, scale) {
-  const rows = HAIR_SETS[look.hair % 4];
-  cv.width = 16 * scale; cv.height = 24 * scale;
-  cv.style.width = (16 * scale) + 'px'; cv.style.height = (24 * scale) + 'px';
-  const g = cv.getContext('2d');
-  const pal = { H: HAIRCOL[look.hc], S: SKINS[look.sk], E: '#1a1020', M: '#8e3c52',
-                O: OUTFITS[look.oc], W: OUTFITS[look.ac], B: '#241c36' };
+  cv.width = SW * scale; cv.height = SH * scale;
+  cv.style.width = (SW * scale) + 'px'; cv.style.height = (SH * scale) + 'px';
+  const g = cv.getContext('2d'), grid = compose(look);
+  const hair = HAIRCOL[look.hc], skin = SKINS[look.sk], out = OUTFITS[look.oc], acc = OUTFITS[look.ac];
+  const pal = { S: skin, s: dk(skin, .8), E: '#191022', M: '#9b4257',
+                H: hair, h: dk(hair, .72), O: out, o: dk(out, .72),
+                W: acc, w: dk(acc, .72), B: BOOTCOL[look.bc || 0], b: dk(BOOTCOL[look.bc || 0], .7),
+                G: '#3d3459', g: '#1d1730' };
   g.clearRect(0, 0, cv.width, cv.height);
-  const on = (x, y) => x >= 0 && x < 16 && y >= 0 && y < rows.length && rows[y][x] !== '.';
+  const on = (x, y) => x >= 0 && x < SW && y >= 0 && y < SH && grid[y][x] !== '.';
   g.fillStyle = '#08060f';
-  for (let y = 0; y < rows.length; y++) for (let x = 0; x < 16; x++) {
-    if (rows[y][x] !== '.') continue;
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    if (grid[y][x] !== '.') continue;
     if (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1)) g.fillRect(x * scale, y * scale, scale, scale);
   }
-  for (let y = 0; y < rows.length; y++) for (let x = 0; x < 16; x++) {
-    const c = pal[rows[y][x]];
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    const c = pal[grid[y][x]];
     if (c) { g.fillStyle = c; g.fillRect(x * scale, y * scale, scale, scale); }
   }
 }
 /* 문자열 템플릿용 자리표시 캔버스. 실제 픽셀은 repaintAll()에서 그린다. */
 function spr(look, scale) {
-  return '<canvas class="sprite" width="' + (16 * scale) + '" height="' + (24 * scale) +
+  return '<canvas class="sprite" width="' + (SW * scale) + '" height="' + (SH * scale) +
     '" data-look="' + esc(JSON.stringify(look)) + '" data-sc="' + scale + '"></canvas>';
 }
-/* 문자열 렌더 후 실제 픽셀을 다시 그린다 (outerHTML은 픽셀을 보존하지 않음) */
 function repaintAll(root) {
   root.querySelectorAll('canvas[data-look]').forEach(cv => {
     paint(cv, JSON.parse(cv.dataset.look), +cv.dataset.sc);
   });
 }
 function randLook() {
-  return { hair: ri(0, 3), hc: ri(0, HAIRCOL.length - 1), sk: ri(0, SKINS.length - 1),
-           oc: ri(0, OUTFITS.length - 1), ac: ri(0, OUTFITS.length - 1) };
+  return { hair: ri(0, HAIR_ART.length - 1), hc: ri(0, HAIRCOL.length - 1), sk: ri(0, SKINS.length - 1),
+           oc: ri(0, OUTFITS.length - 1), ac: ri(0, OUTFITS.length - 1),
+           fit: ri(0, FITS.length - 1), boot: ri(0, BOOTS.length - 1),
+           head: Math.random() < .35 ? ri(1, 2) : 0, arm: Math.random() < .5 ? ri(1, 2) : 0,
+           gear: Math.random() < .45 ? ri(1, 2) : 0, bc: ri(0, BOOTCOL.length - 1) };
 }
 
 /* ---------- 데이터 ---------- */
@@ -792,7 +905,7 @@ function chooseEvent(ei, oi) {
 function showSegment() {
   const o = findW(S.feud.oppId);
   openModal('<div class="mtitle">대립 세그먼트</div>' +
-    '<div class="pnl alt mini center">' + spr(o.look, 4) +
+    '<div class="pnl alt mini center">' + spr(o.look, 3) +
     '<div style="margin-top:6px"><b>' + esc(o.name) + '</b></div>' +
     '<div class="dim">대립 열기 ' + Math.round(S.feud.heat) + '</div></div>' +
     SEGMENTS.map((s, i) => '<button class="opt" onclick="chooseSeg(' + i + ')"><b>' + esc(s.t) + '</b><span>' + esc(s.d) + '</span></button>').join(''));
@@ -819,9 +932,9 @@ function showMatchIntro(it) {
   if (c.title) head += '<br><span class="gold">★ ' + TITLES[c.title].n + ' 매치 ★</span>';
   let body = '<div class="mtitle">' + head + '</div>' +
     '<div class="pnl alt"><div class="row">' +
-    '<div class="center" style="flex:1">' + spr(P.look, 4) + '<div class="mini">' + esc(P.name) + '</div><div class="tiny dim">OVR ' + ovr(P) + '</div></div>' +
+    '<div class="center" style="flex:1">' + spr(P.look, 3) + '<div class="mini">' + esc(P.name) + '</div><div class="tiny dim">OVR ' + ovr(P) + '</div></div>' +
     '<div class="pk" style="font-size:18px">VS</div>' +
-    '<div class="center" style="flex:1">' + spr(o.look, 4) + '<div class="mini">' + esc(o.name) + '</div><div class="tiny dim">OVR ' + ovr(o) + ' · ' + STYLES[o.style].n + '</div></div>' +
+    '<div class="center" style="flex:1">' + spr(o.look, 3) + '<div class="mini">' + esc(o.name) + '</div><div class="tiny dim">OVR ' + ovr(o) + ' · ' + STYLES[o.style].n + '</div></div>' +
     '</div></div>';
   if (c.jobOffer) {
     body += '<div class="pnl mini">부커: "이번엔 ' + esc(o.name) + '를 띄우자. 져줄 수 있겠나?"</div>' +
@@ -844,10 +957,10 @@ function startMatch(accept) {
 function drawMatch() {
   const o = MV.opp;
   openModal('<div class="mtitle">' + (MV.ctx.ppv ? esc(MV.ctx.name) : 'GWF 위클리 쇼') + '</div>' +
-    '<div class="ring"><div class="ropes" style="top:26px"></div><div class="ropes" style="top:46px"></div>' +
+    '<div class="ring"><div class="ropes" style="top:34px"></div><div class="ropes" style="top:62px"></div>' +
     '<div class="mat"></div><div class="fighters">' +
-    '<canvas id="fA" class="sprite" width="64" height="96" data-look="' + esc(JSON.stringify(P.look)) + '" data-sc="4"></canvas>' +
-    '<canvas id="fB" class="sprite" width="64" height="96" data-look="' + esc(JSON.stringify(o.look)) + '" data-sc="4"></canvas>' +
+    '<canvas id="fA" class="sprite" width="96" height="128" data-look="' + esc(JSON.stringify(P.look)) + '" data-sc="4"></canvas>' +
+    '<canvas id="fB" class="sprite" width="96" height="128" data-look="' + esc(JSON.stringify(o.look)) + '" data-sc="4"></canvas>' +
     '</div></div>' +
     '<div class="hpwrap"><div>' + esc(P.name) + '<div class="bar"><i id="hA" style="width:50%"></i></div></div>' +
     '<div style="text-align:right">' + esc(o.name) + '<div class="bar c"><i id="hB" style="width:50%;margin-left:auto"></i></div></div></div>' +
@@ -974,7 +1087,7 @@ function renderTab() {
 function vHome() {
   const rk = rankOf(P), lv = pushLv(P);
   let h = '<div class="pnl"><div class="row">' +
-    '<div>' + spr(P.look, 5) + '</div><div style="flex:1">' +
+    '<div>' + spr(P.look, 4) + '</div><div style="flex:1">' +
     '<div class="pk">' + esc(P.name) + '</div>' +
     '<div class="tiny dim">' + STYLES[P.style].n + ' · ' + (P.align === 'face' ? '페이스' : '힐') + ' · ' + P.age + '세</div>' +
     '<div class="mini" style="margin-top:4px">OVR <b class="gold">' + ovr(P) + '</b> · ' + BRANDS[P.brand].n + '</div>' +
@@ -1145,7 +1258,7 @@ function renderTitle() {
   $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
   const look = { hair: 0, hc: 3, sk: 0, oc: 0, ac: 2 };
   $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1>RING QUEEN</h1><h2>여자 프로레슬링 매니저</h2></div>' +
-    '<div class="center" style="margin:6px 0 14px">' + spr(look, 6) + '</div>' +
+    '<div class="center" style="margin:6px 0 14px">' + spr(look, 5) + '</div>' +
     '<div class="btns">' +
     (hasSave() ? '<button class="btn pri" onclick="resume()">이어하기</button>' : '') +
     '<button class="btn ' + (hasSave() ? '' : 'pri') + '" onclick="mode=\'create\';CR=null;render()">새 커리어</button>' +
@@ -1161,7 +1274,7 @@ function renderCreate() {
   if (!CR) CR = { name: '', style: 'power', align: 'face', age: 18, look: randLook() };
   const inp = $('#nm'); if (inp) CR.name = inp.value;
   $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
-  let h = '<div class="fade"><div class="pnl center">' + spr(CR.look, 6) +
+  let h = '<div class="fade"><div class="pnl center">' + spr(CR.look, 5) +
     '<div class="pk" style="margin-top:6px">' + esc(CR.name || '???') + '</div>' +
     '<div class="tiny dim">' + STYLES[CR.style].n + ' · ' + (CR.align === 'face' ? '페이스(선역)' : '힐(악역)') + ' · ' + CR.age + '세</div></div>';
   h += '<div class="pnl"><div class="ttl">링네임</div><input type="text" id="nm" maxlength="12" placeholder="예: 네온 스톰" value="' + esc(CR.name) + '"></div>';
@@ -1173,23 +1286,33 @@ function renderCreate() {
     '<button class="btn sm ' + (CR.align === 'heel' ? 'pri' : '') + '" onclick="setCR(\'align\',\'heel\')">힐(악역)</button></div></div>';
   h += '<div class="pnl"><div class="ttl">데뷔 나이</div>' +
     AGES.map(a => '<button class="opt ' + (CR.age === a[0] ? 'on' : '') + '" onclick="setCR(\'age\',' + a[0] + ')"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('') + '</div>';
-  h += '<div class="pnl"><div class="ttl">외형</div>' +
-    '<div class="mini">헤어</div><div class="swatch" style="margin-bottom:8px">' +
-    HAIR_NAMES.map((n, i) => '<button class="btn sm ' + (CR.look.hair === i ? 'pri' : '') + '" style="width:auto;padding:4px 8px;min-height:34px" onclick="setLook(\'hair\',' + i + ')">' + n + '</button>').join('') + '</div>' +
-    '<div class="mini">머리 색</div><div class="swatch" style="margin-bottom:8px">' +
-    HAIRCOL.map((c, i) => '<button class="' + (CR.look.hc === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'hc\',' + i + ')"></button>').join('') + '</div>' +
-    '<div class="mini">피부</div><div class="swatch" style="margin-bottom:8px">' +
-    SKINS.map((c, i) => '<button class="' + (CR.look.sk === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'sk\',' + i + ')"></button>').join('') + '</div>' +
-    '<div class="mini">코스튬</div><div class="swatch" style="margin-bottom:8px">' +
-    OUTFITS.map((c, i) => '<button class="' + (CR.look.oc === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'oc\',' + i + ')"></button>').join('') + '</div>' +
-    '<div class="mini">포인트 색</div><div class="swatch">' +
-    OUTFITS.map((c, i) => '<button class="' + (CR.look.ac === i ? 'on' : '') + '" style="background:' + c + '" onclick="setLook(\'ac\',' + i + ')"></button>').join('') + '</div></div>';
+  const optRow = (label, names, key) => '<div class="mini">' + label + '</div><div class="swatch" style="margin-bottom:8px">' +
+    names.map((n, i) => '<button class="btn sm ' + ((CR.look[key] || 0) === i ? 'pri' : '') +
+      '" style="width:auto;padding:4px 9px;min-height:36px" onclick="setLook(\'' + key + '\',' + i + ')">' + n + '</button>').join('') + '</div>';
+  const colRow = (label, cols, key) => '<div class="mini">' + label + '</div><div class="swatch" style="margin-bottom:8px">' +
+    cols.map((c, i) => '<button class="' + ((CR.look[key] || 0) === i ? 'on' : '') + '" style="background:' + c +
+      '" onclick="setLook(\'' + key + '\',' + i + ')"></button>').join('') + '</div>';
+  h += '<div class="pnl"><div class="row"><span class="ttl" style="margin:0">외형</span>' +
+    '<button class="btn sm" style="width:92px;min-height:34px" onclick="rollLook()">🎲 랜덤</button></div>' +
+    '<div style="height:8px"></div>' +
+    optRow('헤어스타일', HAIR_NAMES, 'hair') +
+    colRow('머리 색', HAIRCOL, 'hc') +
+    colRow('피부', SKINS, 'sk') +
+    optRow('코스튬', FIT_NAMES, 'fit') +
+    colRow('코스튬 색', OUTFITS, 'oc') +
+    colRow('포인트 색', OUTFITS, 'ac') +
+    optRow('부츠', BOOT_NAMES, 'boot') +
+    colRow('부츠 색', BOOTCOL, 'bc') +
+    optRow('모자/밴드', HEAD_NAMES, 'head') +
+    optRow('팔', ARM_NAMES, 'arm') +
+    optRow('장비', GEAR_NAMES, 'gear') + '</div>';
   h += '<div class="btns g2" style="margin-bottom:20px"><button class="btn" onclick="mode=\'title\';render()">뒤로</button>' +
     '<button class="btn pri" onclick="startCareer()">데뷔하기</button></div></div>';
   $('#mn').innerHTML = h;
   repaintAll($('#mn'));
 }
 function setCR(k, v) { const i = $('#nm'); if (i) CR.name = i.value; CR[k] = v; renderCreate(); }
+function rollLook() { const i = $('#nm'); if (i) CR.name = i.value; CR.look = randLook(); renderCreate(); }
 function setLook(k, v) { const i = $('#nm'); if (i) CR.name = i.value; CR.look[k] = v; renderCreate(); }
 function startCareer() {
   const i = $('#nm'); if (i) CR.name = i.value.trim();
@@ -1210,7 +1333,7 @@ function renderHOF() {
   $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
   const avg = P.st.matches ? r1(P.st.stars / P.st.matches) : 0;
   $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1 style="font-size:20px">CAREER END</h1><h2>' + esc(P.name) + '</h2></div>' +
-    '<div class="center">' + spr(P.look, 6) + '</div>' +
+    '<div class="center">' + spr(P.look, 5) + '</div>' +
     '<div class="pnl center"><div class="tiny dim">최종 평가</div>' +
     '<div class="gold" style="font-size:24px">' + S.hof + '</div>' +
     '<div class="pk">' + hofRank(S.hof) + '</div></div>' +
