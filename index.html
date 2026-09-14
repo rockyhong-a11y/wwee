@@ -21,7 +21,9 @@ body{
   font-size:13px; line-height:1.5; overscroll-behavior:none;
 }
 canvas{image-rendering:pixelated;image-rendering:-moz-crisp-edges}
-.sprite{display:block;margin:0 auto;background-repeat:no-repeat;background-image:var(--atlas)}
+.sprite{display:block;margin:0 auto;overflow:hidden;position:relative}
+.sprite .spin{position:absolute;inset:0;display:block;background-repeat:no-repeat;background-image:var(--atlas);
+  transition:transform .32s ease,filter .32s ease}
 .flip{transform:scaleX(-1)}
 .fighters .flip.lunge-r{transform:scaleX(-1) translateX(10px)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -185,7 +187,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
    data URI가 DOM에 복제되지 않으므로 65종 그리드도 가볍다. */
 const NPORT = 65, ACOL = 11, AROW = 6;
 const TONES = [
-  { n: '원본',     f: 'none' },
+  { n: '원본',     f: '' },
   { n: '웜',       f: 'hue-rotate(14deg) saturate(1.1)' },
   { n: '쿨',       f: 'hue-rotate(-14deg) saturate(1.05)' },
   { n: '앰버',     f: 'hue-rotate(26deg) saturate(1.15) brightness(1.05)' },
@@ -205,12 +207,47 @@ function toneIdx(look) {
   const h = look.hue || 0;                                    // 구버전 hue -> 톤
   return h === 0 ? 0 : h === 14 ? 1 : h === -14 ? 2 : h === 26 ? 3 : h === -26 ? 4 : 5;
 }
-function spr(look, n, cls, attrs) {
+/* 상황별 표정 연출: 얼굴 클로즈업 배율 + 감정 필터 */
+const MOODS = {
+  neutral: { f: '',                                            z: 1,    o: '50% 30%' },
+  focus:   { f: 'contrast(1.12) saturate(.95)',                z: 1.18, o: '50% 24%' },
+  fierce:  { f: 'contrast(1.26) saturate(1.15)',               z: 1.34, o: '50% 20%' },
+  rage:    { f: 'contrast(1.3) saturate(1.45) hue-rotate(8deg)', z: 1.46, o: '50% 18%' },
+  pain:    { f: 'saturate(.42) brightness(.78) contrast(1.1)', z: 1.3,  o: '50% 20%' },
+  down:    { f: 'saturate(.5) brightness(.72) hue-rotate(-16deg)', z: 1.12, o: '50% 26%' },
+  joy:     { f: 'brightness(1.14) saturate(1.25)',             z: 1.22, o: '50% 22%' },
+  proud:   { f: 'brightness(1.08) saturate(1.18) contrast(1.08)', z: 1.14, o: '50% 24%' },
+  calm:    { f: 'saturate(.85) brightness(1.02)',              z: 1.04, o: '50% 28%' },
+  sepia:   { f: 'sepia(.5) contrast(1.05)',                    z: 1.06, o: '50% 28%' }
+};
+function mixF(a, b) { const v = [a, b].filter(x => x).join(' '); return v || 'none'; }
+function spr(look, n, cls, attrs, mood) {
   const i = portraitIdx(look), c = i % ACOL, r = (i / ACOL) | 0;
-  return '<div class="sprite ' + (cls || '') + '" style="width:' + (24 * n) + 'px;height:' + (32 * n) +
-    'px;background-size:' + (ACOL * 100) + '% ' + (AROW * 100) + '%;background-position:' +
-    (c / (ACOL - 1) * 100).toFixed(3) + '% ' + (r / (AROW - 1) * 100).toFixed(3) + '%;filter:' +
-    TONES[toneIdx(look)].f + '"' + (attrs || '') + '></div>';
+  const m = MOODS[mood] || MOODS.neutral;
+  return '<div class="sprite ' + (cls || '') + '" style="width:' + (24 * n) + 'px;height:' + (32 * n) + 'px"' +
+    (attrs || '') + '><i class="spin" style="background-size:' + (ACOL * 100) + '% ' + (AROW * 100) +
+    '%;background-position:' + (c / (ACOL - 1) * 100).toFixed(3) + '% ' + (r / (AROW - 1) * 100).toFixed(3) +
+    '%;transform:scale(' + m.z + ');transform-origin:' + m.o + ';filter:' + mixF(TONES[toneIdx(look)].f, m.f) +
+    '"></i></div>';
+}
+/* 경기 중 실시간 표정 전환 */
+function setMood(sel, mood, look) {
+  const el = document.querySelector(sel + ' .spin');
+  if (!el) return;
+  const m = MOODS[mood] || MOODS.neutral;
+  el.style.transform = 'scale(' + m.z + ')';
+  el.style.transformOrigin = m.o;
+  el.style.filter = mixF(TONES[toneIdx(look)].f, m.f);
+}
+/* 현재 상태에 맞는 플레이어 표정 */
+function myMood() {
+  if (P.injury > 0) return 'pain';
+  if (P.cond < 30) return 'down';
+  if (holdsAny()) return 'proud';
+  if (S.feud) return 'fierce';
+  if (isPPV(S.week)) return 'focus';
+  if (S.trust > 78 && pushLv(P) >= 4) return 'proud';
+  return 'neutral';
 }
 function randLook() { return { p: ri(0, NPORT - 1), t: ri(0, TONES.length - 1) }; }
 
@@ -727,7 +764,11 @@ function pickOpponent() {
 function advanceWeek() {
   if (S.retired) return;
   S.queue = [];
-  const rep = situation().concat(doActivity());
+  const actMood = { train: 'focus', rest: P.injury > 0 ? 'pain' : 'calm', promo: 'proud',
+                    back: 'neutral', media: 'joy' }[(S.act || {}).k] || 'neutral';
+  const shotMood = P.injury > 0 ? 'pain' : P.cond < 30 ? 'down' : isPPV(S.week) ? 'focus' : S.feud ? 'fierce' : actMood;
+  const rep = ['<div class="center" style="margin-bottom:6px">' + spr(P.look, 3, '', '', shotMood) + '</div>']
+    .concat(situation(), doActivity());
   S.queue.push({ type: 'report', title: S.week + '주차', lines: rep });
 
   const ppv = isPPV(S.week);
@@ -942,7 +983,7 @@ function chooseEvent(ei, oi) {
 function showSegment() {
   const o = findW(S.feud.oppId);
   openModal('<div class="mtitle">대립 세그먼트</div>' +
-    '<div class="pnl alt mini center">' + spr(o.look, 3) +
+    '<div class="pnl alt mini center">' + spr(o.look, 3, '', '', 'rage') +
     '<div style="margin-top:6px"><b>' + esc(o.name) + '</b></div>' +
     '<div class="dim">대립 열기 ' + Math.round(S.feud.heat) + '</div></div>' +
     SEGMENTS.map((s, i) => '<button class="opt" onclick="chooseSeg(' + i + ')"><b>' + esc(s.t) + '</b><span>' + esc(s.d) + '</span></button>').join(''));
@@ -969,9 +1010,9 @@ function showMatchIntro(it) {
   if (c.title) head += '<br><span class="gold">★ ' + TITLES[c.title].n + ' 매치 ★</span>';
   let body = '<div class="mtitle">' + head + '</div>' +
     '<div class="pnl alt"><div class="row">' +
-    '<div class="center" style="flex:1">' + spr(P.look, 3) + '<div class="mini">' + esc(P.name) + '</div><div class="tiny dim">OVR ' + ovr(P) + '</div></div>' +
+    '<div class="center" style="flex:1">' + spr(P.look, 3, '', '', 'fierce') + '<div class="mini">' + esc(P.name) + '</div><div class="tiny dim">OVR ' + ovr(P) + '</div></div>' +
     '<div class="pk" style="font-size:18px">VS</div>' +
-    '<div class="center" style="flex:1">' + spr(o.look, 3) + '<div class="mini">' + esc(o.name) + '</div><div class="tiny dim">OVR ' + ovr(o) + ' · ' + STYLES[o.style].n + '</div></div>' +
+    '<div class="center" style="flex:1">' + spr(o.look, 3, '', '', 'fierce') + '<div class="mini">' + esc(o.name) + '</div><div class="tiny dim">OVR ' + ovr(o) + ' · ' + STYLES[o.style].n + '</div></div>' +
     '</div></div>';
   if (c.jobOffer) {
     body += '<div class="pnl mini">부커: "이번엔 ' + esc(o.name) + '를 띄우자. 져줄 수 있겠나?"</div>' +
@@ -996,7 +1037,7 @@ function drawMatch() {
   openModal('<div class="mtitle">' + (MV.ctx.ppv ? esc(MV.ctx.name) : 'GWF 위클리 쇼') + '</div>' +
     '<div class="ring"><div class="ropes" style="top:34px"></div><div class="ropes" style="top:62px"></div>' +
     '<div class="mat"></div><div class="fighters">' +
-    spr(P.look, 4, '', ' id="fA"') + spr(o.look, 4, 'flip', ' id="fB"') +
+    spr(P.look, 4, '', ' id="fA"', 'focus') + spr(o.look, 4, 'flip', ' id="fB"', 'focus') +
     '</div></div>' +
     '<div class="hpwrap"><div>' + esc(P.name) + '<div class="bar"><i id="hA" style="width:50%"></i></div></div>' +
     '<div style="text-align:right">' + esc(o.name) + '<div class="bar c"><i id="hB" style="width:50%;margin-left:auto"></i></div></div></div>' +
@@ -1021,6 +1062,15 @@ function stepMatch() {
     p.className = b.t; p.innerHTML = esc(b.s);
     box.appendChild(p); box.scrollTop = box.scrollHeight;
   }
+  const BM = { big: ['fierce', 'pain'], near: ['proud', 'pain'], counter: ['fierce', 'pain'],
+               brawl: ['rage', 'pain'], crowd: ['proud', null] };
+  if (b.t === 'runin') { setMood('#fA', 'rage', P.look); setMood('#fB', 'rage', MV.opp.look); }
+  else if (BM[b.t] && b.me !== undefined) {
+    const act = b.me ? '#fA' : '#fB', tgt = b.me ? '#fB' : '#fA';
+    const al = b.me ? P.look : MV.opp.look, tl = b.me ? MV.opp.look : P.look;
+    if (BM[b.t][0]) setMood(act, BM[b.t][0], al);
+    if (BM[b.t][1]) setMood(tgt, BM[b.t][1], tl);
+  }
   const ring = document.querySelector('.ring');
   if (ring && (b.t === 'near' || b.t === 'big' || b.t === 'runin')) {
     ring.classList.add(b.t === 'runin' ? 'flash' : 'shake');
@@ -1043,6 +1093,9 @@ function skipMatch() {
 }
 function finishPlay() {
   clearTimeout(MV.timer); MV.timer = null;
+  const nc = MV.res.noContest;
+  setMood('#fA', nc ? 'rage' : MV.res.win ? 'joy' : 'down', P.look);
+  setMood('#fB', nc ? 'rage' : MV.res.win ? 'down' : 'joy', MV.opp.look);
   const b = $('#mEnd');
   if (b) { b.disabled = false; b.onclick = matchResult; }
   else matchResult();
@@ -1058,7 +1111,8 @@ function matchResult() {
   news(P.name + (res.noContest ? ' 무효경기' : res.win ? ' 승리' : ' 패배') + ' vs ' + res.opp.name + ' (★' + res.stars + ')', res.ctx.ppv);
   openModal('<div class="mtitle">경기 결과</div>' +
     '<div class="pnl alt center">' +
-    '<div style="font-size:20px" class="' + (res.noContest ? 'gold' : res.win ? 'gr' : 'rd') + '">' +
+    spr(P.look, 4, '', '', res.noContest ? 'rage' : res.win ? 'joy' : 'down') +
+    '<div style="font-size:20px;margin-top:6px" class="' + (res.noContest ? 'gold' : res.win ? 'gr' : 'rd') + '">' +
     (res.noContest ? 'NO CONTEST' : res.win ? 'WIN' : 'LOSE') + '</div>' +
     '<div class="stars">' + starStr(res.stars) + '</div>' +
     '<div class="tiny dim">경기 평점 ' + res.stars.toFixed(1) + ' / 5.0</div></div>' +
@@ -1135,7 +1189,7 @@ function renderTab() {
 function vHome() {
   const rk = rankOf(P), lv = pushLv(P);
   let h = '<div class="pnl"><div class="row">' +
-    '<div>' + spr(P.look, 4) + '</div><div style="flex:1">' +
+    '<div>' + spr(P.look, 4, '', '', myMood()) + '</div><div style="flex:1">' +
     '<div class="pk">' + esc(P.name) + '</div>' +
     '<div class="tiny dim">' + STYLES[P.style].n + ' · ' + (P.align === 'face' ? '페이스' : '힐') + ' · ' + P.age + '세</div>' +
     '<div class="mini" style="margin-top:4px">OVR <b class="gold">' + ovr(P) + '</b> · ' + BRANDS[P.brand].n + '</div>' +
@@ -1249,7 +1303,7 @@ function vRank() {
     const me = w.id === P.id;
     const champ = S.titles.rising === w.id || S.titles.world === w.id;
     return '<div class="card" style="' + (me ? 'border-color:var(--pink)' : '') + '">' +
-      '<div class="gold" style="width:22px;text-align:center">' + (i + 1) + '</div>' + spr(w.look, 2) +
+      '<div class="gold" style="width:22px;text-align:center">' + (i + 1) + '</div>' + spr(w.look, 2, '', '', champ ? 'proud' : 'neutral') +
       '<div class="info"><div class="nm ' + (me ? 'pk' : '') + '">' + esc(w.name) + '</div>' +
       '<div class="tiny dim">' + STYLES[w.style].n + ' · OVR ' + ovr(w) + ' · ' + w.rec.w + 'W ' + w.rec.l + 'L</div>' +
       '<div class="tiny">인지도 ' + Math.round(w.pop) + ' ' + (champ ? '<span class="badge t">CHAMP</span>' : '') +
@@ -1336,7 +1390,7 @@ function renderTitle() {
   $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
   const look = { p: 3, t: 0 };
   $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1>RING QUEEN</h1><h2>여자 프로레슬링 매니저</h2></div>' +
-    '<div class="center" style="margin:6px 0 14px">' + spr(look, 5) + '</div>' +
+    '<div class="center" style="margin:6px 0 14px">' + spr(look, 5, '', '', 'fierce') + '</div>' +
     '<div class="btns">' +
     (hasSave() ? '<button class="btn pri" onclick="resume()">이어하기</button>' : '') +
     '<button class="btn ' + (hasSave() ? '' : 'pri') + '" onclick="mode=\'create\';CR=null;render()">새 커리어</button>' +
@@ -1411,7 +1465,7 @@ function renderHOF() {
   $('#hd').innerHTML = ''; $('#nv').innerHTML = '';
   const avg = P.st.matches ? r1(P.st.stars / P.st.matches) : 0;
   $('#mn').innerHTML = '<div class="fade"><div class="logo"><h1 style="font-size:20px">CAREER END</h1><h2>' + esc(P.name) + '</h2></div>' +
-    '<div class="center">' + spr(P.look, 5) + '</div>' +
+    '<div class="center">' + spr(P.look, 5, '', '', 'sepia') + '</div>' +
     '<div class="pnl center"><div class="tiny dim">최종 평가</div>' +
     '<div class="gold" style="font-size:24px">' + S.hof + '</div>' +
     '<div class="pk">' + hofRank(S.hof) + '</div></div>' +
